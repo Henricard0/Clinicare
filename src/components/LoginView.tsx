@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { Lock, Shield, Key, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, UserPlus, LogIn, Trash2, BookmarkCheck, ExternalLink, X, Sparkles, HelpCircle } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
+import { apiFetch } from '../utils/clientApiFallback';
 
 interface LoginViewProps {
   onLoginSuccess: (user: User, token: string) => void;
@@ -134,7 +135,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
     try {
       // Se houver GOOGLE_CLIENT_ID configurado no backend, redireciona o popup para o Google oficial
-      const res = await fetch('/api/auth/google/url');
+      const res = await apiFetch('/api/auth/google/url');
       const data = await res.json();
 
       if (data.configured && data.url) {
@@ -270,9 +271,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       </html>
     `;
 
-    popup.document.open();
-    popup.document.write(popupHtml);
-    popup.document.close();
+    try {
+      popup.document.open();
+      popup.document.write(popupHtml);
+      popup.document.close();
+    } catch (popupErr) {
+      console.warn('Popup write falhou ou foi bloqueado pela política de origem, exibindo seletor na página:', popupErr);
+      try {
+        popup.close();
+      } catch {}
+      setIsGoogleModalOpen(true);
+    }
     setIsGoogleLoading(false);
   };
 
@@ -281,7 +290,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     setErrorMessage(null);
 
     try {
-      const res = await fetch('/api/auth/google', {
+      const res = await apiFetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -349,7 +358,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
     try {
       const trimmedEmail = targetEmail.trim();
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: trimmedEmail, password: targetPass }),
@@ -396,7 +405,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
     try {
       const trimmedEmail = regEmail.trim();
-      const res = await fetch('/api/auth/register', {
+      const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
