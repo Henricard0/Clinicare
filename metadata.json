@@ -1,0 +1,6 @@
+{
+  "name": "CliniCare - Gestão Clínica & Prontuário LGPD",
+  "description": "Sistema de Gestão em Psicologia Clínica, Prontuário Eletrônico LGPD/CFP, Agenda Interativa com Arraste e Login com Google OAuth 2.0.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
