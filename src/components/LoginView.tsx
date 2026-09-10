@@ -135,7 +135,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         body: JSON.stringify({ email: trimmedEmail, password: targetPass }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(
+          res.status === 404
+            ? 'Endpoint /api/auth/login não encontrado (404). Verifique se o servidor backend está ativo.'
+            : `Erro no servidor (${res.status}): ${text.slice(0, 100)}`
+        );
+      }
 
       if (!res.ok) {
         throw new Error(data.message || data.error || 'Credenciais inválidas.');
@@ -190,7 +201,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(
+          res.status === 404
+            ? 'Endpoint /api/auth/register não encontrado (404). Verifique se o servidor backend está ativo.'
+            : `Erro no servidor (${res.status}): ${text.slice(0, 100)}`
+        );
+      }
 
       if (!res.ok) {
         throw new Error(data.message || data.error || 'Falha ao cadastrar usuário.');

@@ -2,12 +2,21 @@ import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+// Normalizador de URL estritamente para ambiente Vercel Serverless
+if (process.env.VERCEL) {
+  app.use((req, res, next) => {
+    if (req.url && !req.url.startsWith('/api')) {
+      req.url = '/api' + req.url;
+    }
+    next();
+  });
+}
 
 // ==========================================
 // 1. CHAVE CRIPTOGRÁFICA LGPD (AES-256-GCM)
@@ -286,7 +295,7 @@ let reminders: ReminderQueueDb[] = [];
 // Garante que cadastros de psicólogos, administradores,
 // pacientes e sessões não sejam perdidos ao reiniciar
 // ==========================================
-const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'clinic_data.json');
 
 function seedInitialDataIfEmpty(forceDemoData: boolean = false) {
@@ -2398,13 +2407,14 @@ if (user.role !== 'ADMIN') {
 // 7. INICIALIZAÇÃO DO SERVIDOR COM VITE MIDDLEWARE
 // ==========================================
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -2412,9 +2422,15 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CliniCare SaaS Server running on http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`CliniCare SaaS Server running on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
