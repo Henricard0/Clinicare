@@ -57,10 +57,34 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>(() => {
     try {
       const raw = localStorage.getItem('clinicacare_saved_accounts');
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        email: 'henrique@clinicacare.com',
+        name: 'Dr. Henrique Greca',
+        role: 'PROFESSIONAL',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        savedAt: new Date().toISOString(),
+      },
+      {
+        email: 'beatriz@clinicacare.com',
+        name: 'Dra. Beatriz Santos',
+        role: 'PROFESSIONAL',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        savedAt: new Date().toISOString(),
+      },
+      {
+        email: 'admin@clinicacare.com',
+        name: 'Dr. Roberto Fonseca',
+        role: 'ADMIN',
+        avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
+        savedAt: new Date().toISOString(),
+      },
+    ];
   });
   const [rememberMe, setRememberMe] = useState<boolean>(() => {
     return localStorage.getItem('clinicacare_remember_me') !== 'false';
@@ -68,9 +92,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
   // Login form state
   const [email, setEmail] = useState(() => {
-    return localStorage.getItem('clinicacare_remembered_email') || '';
+    return localStorage.getItem('clinicacare_remembered_email') || 'henrique@clinicacare.com';
   });
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('psi123');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -108,6 +132,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
   const handleSelectSavedAccount = (accEmail: string) => {
     setEmail(accEmail);
+    if (accEmail.includes('admin')) {
+      setPassword('admin123');
+    } else if (accEmail.includes('rec')) {
+      setPassword('rec123');
+    } else {
+      setPassword('psi123');
+    }
     setTimeout(() => {
       passwordInputRef.current?.focus();
     }, 50);
