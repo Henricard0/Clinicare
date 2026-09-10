@@ -1,6 +1,6 @@
 import React from 'react';
 import { SystemNotification } from '../types';
-import { X, Bell, Calendar, ShieldAlert, CheckCircle2, Clock } from 'lucide-react';
+import { X, Bell, Calendar, Clock } from 'lucide-react';
 
 interface NotificationDrawerProps {
   isOpen: boolean;

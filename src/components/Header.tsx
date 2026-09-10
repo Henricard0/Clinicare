@@ -1,30 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { User } from '../types';
-import { Shield, Bell, UserCheck, Users, Calendar, Lock, FileCode, CheckCircle2, LogOut, Trash2, UserCog, Sparkles, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Bell, UserCheck, Users, Calendar, Lock, LogOut, UserCog, RefreshCw } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
 
 interface HeaderProps {
   currentUser: User;
-  allUsers: User[];
-  onSwitchUser: (userId: string) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   unreadNotificationsCount: number;
   onOpenNotifications: () => void;
-  onOpenArchitecture: () => void;
   onOpenProfile: () => void;
   onLogout: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
-  allUsers,
-  onSwitchUser,
   activeTab,
   setActiveTab,
   unreadNotificationsCount,
   onOpenNotifications,
-  onOpenArchitecture,
   onOpenProfile,
   onLogout,
 }) => {

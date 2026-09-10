@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Patient, User } from '../types';
-import { X, Calendar, CheckCircle2, AlertCircle, Clock, Repeat, MapPin, Video, Sparkles } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, Repeat, MapPin, Video, Sparkles } from 'lucide-react';
 import { getAuthHeaders } from '../utils/auth';
 
 interface ActivateContinuousModalProps {
@@ -33,7 +33,7 @@ export const ActivateContinuousModal: React.FC<ActivateContinuousModalProps> = (
 
   const [dayOfWeek, setDayOfWeek] = useState<number>(2); // Terça-feira default
   const [time, setTime] = useState<string>('14:00');
-  const [durationMinutes, setDurationMinutes] = useState<number>(50);
+  const durationMinutes = 50;
   const [sessionType, setSessionType] = useState<'PRESENCIAL' | 'ONLINE'>('PRESENCIAL');
   const [professionalId, setProfessionalId] = useState<string>(
     patient?.assigned_professional_id || (currentUser.role === 'PROFESSIONAL' ? currentUser.id : professionals[0]?.id || '')

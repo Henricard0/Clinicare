@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Database, FolderTree, Code, Shield, Copy, Check, Terminal, FileText, Lock, Key, Server } from 'lucide-react';
+import { X, Database, FolderTree, Code, Shield, Copy, Check, Lock, Key, Server } from 'lucide-react';
 
 interface ArchitectureDocsViewProps {
   isOpen: boolean;

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Patient, Appointment, AppointmentStatus, ReminderQueueItem, SystemNotification, AuditLog } from './types';
+import { User, Patient, Appointment, AppointmentStatus, SystemNotification } from './types';
 import { Header } from './components/Header';
 import { CalendarView } from './components/CalendarView';
 import { PatientsList } from './components/PatientsList';
 import { MedicalRecordView } from './components/MedicalRecordView';
-import { RemindersView } from './components/RemindersView';
-import { AuditLogsView } from './components/AuditLogsView';
 import { NewAppointmentModal } from './components/NewAppointmentModal';
 import { NewPatientModal } from './components/NewPatientModal';
 import { ActivateContinuousModal } from './components/ActivateContinuousModal';
@@ -17,7 +15,7 @@ import { BottomNav } from './components/BottomNav';
 import { LoginView } from './components/LoginView';
 import { ProfileModal } from './components/ProfileModal';
 import { FinancialView } from './components/FinancialView';
-import { ShieldCheck, Calendar, Users, Lock, Smartphone, Shield, FileCode, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Lock, Code } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -25,15 +23,15 @@ export default function App() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   // Recupera a aba ativa da URL hash ou do localStorage para manter a mesma página após refresh
-  const [activeTab, setActiveTab] = useState<'agenda' | 'patients' | 'records'>(() => {
+  const [activeTab, setActiveTab] = useState<'agenda' | 'patients' | 'records' | 'financial'>(() => {
     try {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'agenda' || hash === 'patients' || hash === 'records') {
-        return hash;
+      if (hash === 'agenda' || hash === 'patients' || hash === 'records' || hash === 'financial') {
+        return hash as any;
       }
       const saved = localStorage.getItem('clinicacare_active_tab');
-      if (saved === 'agenda' || saved === 'patients' || saved === 'records') {
-        return saved;
+      if (saved === 'agenda' || saved === 'patients' || saved === 'records' || saved === 'financial') {
+        return saved as any;
       }
     } catch {
       // Ignora restrições de storage se houver
@@ -43,9 +41,7 @@ export default function App() {
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [reminders, setReminders] = useState<ReminderQueueItem[]>([]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   const [selectedPatientForRecord, setSelectedPatientForRecord] = useState<Patient | null>(null);
 
@@ -178,24 +174,21 @@ export default function App() {
     const headers = getHeaders(userId, token);
 
     try {
-      const [patientsRes, apptsRes, remsRes, notifsRes] = await Promise.all([
+      const [patientsRes, apptsRes, notifsRes] = await Promise.all([
         fetch('/api/patients', { headers }),
         fetch('/api/appointments', { headers }),
-        fetch('/api/reminders', { headers }),
         fetch('/api/notifications', { headers }),
       ]);
 
-      const [patientsData, apptsData, remsData, notifsData] = await Promise.all([
+      const [patientsData, apptsData, notifsData] = await Promise.all([
         patientsRes.json(),
         apptsRes.json(),
-        remsRes.json(),
         notifsRes.json(),
       ]);
 
       const fetchedPatients = patientsData.patients || [];
       setPatients(fetchedPatients);
       setAppointments(apptsData.appointments || []);
-      setReminders(remsData.reminders || []);
       setNotifications(notifsData.notifications || []);
 
       if (fetchedPatients.length > 0) {
@@ -214,16 +207,7 @@ export default function App() {
         setSelectedPatientForRecord(null);
       }
 
-      // Se for admin, carrega logs de auditoria
-      const actingId = userId || currentUser?.id;
-      const user = allUsers.find((u) => u.id === actingId) || currentUser;
-      if (user?.role === 'ADMIN') {
-        const logsRes = await fetch('/api/audit-logs', { headers });
-        if (logsRes.ok) {
-          const logsData = await logsRes.json();
-          setAuditLogs(logsData.auditLogs || []);
-        }
-      }
+      // Se for admin ou profissional, dados já carregados
     } catch (err) {
       console.error('Erro ao atualizar dados:', err);
     }
@@ -255,30 +239,8 @@ export default function App() {
       setCurrentUser(null);
       setPatients([]);
       setAppointments([]);
-      setReminders([]);
       setSelectedPatientForRecord(null);
       window.location.hash = '';
-    }
-  };
-
-  const handleSwitchUser = async (userId: string) => {
-    try {
-      const res = await fetch('/api/auth/switch-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getHeaders() },
-        body: JSON.stringify({ userId }),
-      });
-      const data = await res.json();
-      if (data.user) {
-        if (data.token) {
-          localStorage.setItem('clinicacare_session_token', data.token);
-          setSessionToken(data.token);
-        }
-        setCurrentUser(data.user);
-        await refreshAllData(data.user.id, data.token);
-      }
-    } catch (err) {
-      console.error('Erro ao alternar usuário:', err);
     }
   };
 
@@ -331,25 +293,6 @@ export default function App() {
     }
   };
 
-  const handleTriggerBatchReminders = async () => {
-    if (!currentUser) return;
-    try {
-      const res = await fetch('/api/reminders/trigger-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getHeaders(),
-        },
-      });
-      const data = await res.json();
-      if (data.reminders) {
-        setReminders(data.reminders);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const handleMarkNotificationAsRead = async (id: string) => {
     try {
       await fetch(`/api/notifications/${id}/read`, {
@@ -398,13 +341,10 @@ export default function App() {
       {/* Header com Switcher de Papéis (RBAC) & Logout */}
       <Header
         currentUser={currentUser}
-        allUsers={allUsers}
-        onSwitchUser={handleSwitchUser}
         activeTab={activeTab}
         setActiveTab={setActiveTab as any}
         unreadNotificationsCount={unreadCount}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
-        onOpenArchitecture={() => setIsArchitectureOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
         onLogout={handleLogout}
       />
@@ -475,6 +415,12 @@ export default function App() {
             <span className="flex items-center gap-1 text-[#8A8A82]">
               <Lock className="w-3 h-3" /> Criptografia Ponta a Ponta
             </span>
+            <button
+              onClick={() => setIsArchitectureOpen(true)}
+              className="flex items-center gap-1 text-[#8A8A82] hover:text-[#5A5A40] transition-colors cursor-pointer"
+            >
+              <Code className="w-3 h-3" /> Arquitetura & LGPD
+            </button>
           </div>
         </div>
       </footer>
@@ -484,7 +430,6 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         currentUser={currentUser}
-        onOpenArchitecture={() => setIsArchitectureOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
       />
 

@@ -3,8 +3,6 @@ import { Patient, User } from '../types';
 import {
   X,
   Calendar,
-  Clock,
-  UserCheck,
   Repeat,
   AlertTriangle,
   CheckCircle2,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Patient, User } from '../types';
-import { X, FileSignature, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, FileSignature, Lock } from 'lucide-react';
 import { getAuthHeaders } from '../utils/auth';
 
 interface NewEvolutionModalProps {

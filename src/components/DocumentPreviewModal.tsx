@@ -10,10 +10,8 @@ import {
   User,
   ZoomIn,
   ZoomOut,
-  Maximize2,
   FileCheck,
   Lock,
-  ExternalLink,
   Trash2,
 } from 'lucide-react';
 

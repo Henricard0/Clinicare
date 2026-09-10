@@ -10,7 +10,6 @@ import {
   Check,
   AlertCircle,
   Phone,
-  FileText,
   Sparkles,
   Eye,
   EyeOff,

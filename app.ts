@@ -5,7 +5,6 @@ import fs from 'fs';
 import os from 'os';
 
 const app = express();
-const PORT = 3000;
 
 // ==========================================
 // DETECÇÃO DE AMBIENTE SERVERLESS (Vercel, AWS Lambda, GCP Functions)
@@ -33,7 +32,7 @@ function checkIsServerless(): boolean {
 const isServerless = checkIsServerless();
 
 // 1. Normalizador de URL para ambiente Serverless (Vercel) e Proxies
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   // Se veio rewrite da Vercel com endpoint na query
   if (req.query && (req.query.endpoint || req.query.__endpoint)) {
     const ep = (req.query.endpoint || req.query.__endpoint) as string | string[];
@@ -1034,12 +1033,12 @@ function requireMedicalRecordAccess(req: express.Request, res: express.Response,
 // ==========================================
 
 // Health Check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), lgpd_compliant: true });
 });
 
 // Autenticação Criptografada & Gestão de Sessões
-app.get('/api/auth/users', (req, res) => {
+app.get('/api/auth/users', (_req, res) => {
   // Retorna usuários sem campos confidenciais de credencial (hash/salt)
   const safeUsers = users.map(({ password_hash, password_salt, ...u }) => u);
   res.json({ users: safeUsers, activeUserId });
@@ -1156,7 +1155,7 @@ app.post('/api/auth/register', (req, res) => {
 // ==========================================
 // GOOGLE OAUTH 2.0 & GOOGLE SIGN-IN ENDPOINTS
 // ==========================================
-app.get('/api/auth/google/config', (req, res) => {
+app.get('/api/auth/google/config', (_req, res) => {
   const appUrl = process.env.APP_URL || 'https://ais-dev-5lmydobo57gs6kujnyyycn-93849339892.us-east1.run.app';
   const clientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
   const callbackUrl = `${appUrl}/auth/google/callback`;
@@ -1333,7 +1332,7 @@ app.get(['/auth/google/callback', '/auth/google/callback/'], async (req, res) =>
 
 // Endpoint unificado de login com Google (chamado via GSI / One-Tap ou Seletor de Contas Google)
 app.post('/api/auth/google', (req, res) => {
-  const { email, name, avatar, googleId } = req.body;
+  const { email, name, avatar } = req.body;
 
   if (!email) {
     return res.status(400).json({ error: 'E-mail do Google é obrigatório.' });
@@ -2462,7 +2461,7 @@ app.patch('/api/appointments/:id/reschedule', (req, res) => {
 });
 
 // Lembretes & Notificações
-app.get('/api/reminders', (req, res) => {
+app.get('/api/reminders', (_req, res) => {
   res.json({ reminders });
 });
 
@@ -2508,7 +2507,7 @@ if (user.role !== 'ADMIN') {
 });
 
 // Tratamento Global de Erros para Express / Serverless
-app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Express Uncaught Error]:', err);
   if (!res.headersSent) {
     res.status(500).json({

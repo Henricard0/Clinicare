@@ -295,10 +295,6 @@ function saveStore(store: ResilienceStore) {
 // Emissor de status de resiliência
 let isResilienceModeActive = false;
 
-export function getResilienceStatus() {
-  return isResilienceModeActive;
-}
-
 function setResilienceMode(active: boolean, reason?: string) {
   if (isResilienceModeActive !== active) {
     isResilienceModeActive = active;
@@ -388,7 +384,6 @@ function handleLocalApiRequest(url: string, init?: RequestInit): Response {
   // --- 1. /api/auth/login ---
   if (cleanPath === '/api/auth/login' && method === 'POST') {
     const rawEmail = String(body.email || '').toLowerCase().trim();
-    const rawPass = String(body.password || '').trim();
 
     let user = store.users.find((u) => u.email.toLowerCase() === rawEmail);
     // Alias especial para Dr. Henrique Greca

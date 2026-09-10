@@ -3,15 +3,9 @@ import { User, TreatmentStatus } from '../types';
 import {
   X,
   UserPlus,
-  Shield,
-  CheckCircle2,
-  Calendar,
-  Clock,
   Repeat,
-  Sparkles,
   MapPin,
   Video,
-  HelpCircle,
 } from 'lucide-react';
 import { getAuthHeaders } from '../utils/auth';
 
@@ -63,7 +57,7 @@ export const NewPatientModal: React.FC<NewPatientModalProps> = ({
   // Configuração para Paciente Antigo / Já em Tratamento Contínuo (gera horário semanal no calendário)
   const [recurringDayOfWeek, setRecurringDayOfWeek] = useState<number>(2); // Terça-feira
   const [recurringTime, setRecurringTime] = useState<string>('14:00');
-  const [recurringDuration, setRecurringDuration] = useState<number>(50);
+  const recurringDuration = 50;
   const [recurringSessionType, setRecurringSessionType] = useState<'PRESENCIAL' | 'ONLINE'>('PRESENCIAL');
   const [recurringWeeks, setRecurringWeeks] = useState<number>(8);
 

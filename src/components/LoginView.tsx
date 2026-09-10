@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { User, UserRole } from '../types';
-import { Lock, Shield, Key, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, UserPlus, LogIn, Trash2, BookmarkCheck, ExternalLink, X, Sparkles, HelpCircle } from 'lucide-react';
+import { Lock, Shield, Eye, EyeOff, CheckCircle2, AlertCircle, UserPlus, LogIn, Trash2, BookmarkCheck } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
 
 interface LoginViewProps {
@@ -14,41 +14,6 @@ interface SavedAccount {
   avatar?: string;
   savedAt: string;
 }
-
-const DEMO_ACCOUNTS = [
-  {
-    email: 'beatriz@clinicacare.com',
-    password: 'psi123',
-    name: 'Dra. Beatriz Santos',
-    role: 'PROFESSIONAL' as UserRole,
-    roleLabel: 'Psicóloga Clínica (TCC)',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  },
-  {
-    email: 'henrique@clinicacare.com',
-    password: 'psi123',
-    name: 'Dr. Henrique Greca',
-    role: 'PROFESSIONAL' as UserRole,
-    roleLabel: 'Psicólogo Clínico & Avaliação',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  },
-  {
-    email: 'recepcao@clinicacare.com',
-    password: 'rec123',
-    name: 'Camila Andrade',
-    role: 'RECEPTION' as UserRole,
-    roleLabel: 'Recepção / Agenda',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-  },
-  {
-    email: 'admin@clinicacare.com',
-    password: 'admin123',
-    name: 'Dr. Roberto Fonseca',
-    role: 'ADMIN' as UserRole,
-    roleLabel: 'Administrador Geral',
-    avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
-  },
-];
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');

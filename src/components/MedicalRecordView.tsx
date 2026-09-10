@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Patient, MedicalRecord, MedicalAttachment, User } from '../types';
-import { ShieldAlert, Lock, ShieldCheck, Key, FileCheck2, Plus, Upload, Calendar, Clock, AlertTriangle, FileText, CheckCircle2, Paperclip, Hash, Download, Eye, Trash2 } from 'lucide-react';
+import { ShieldAlert, Lock, ShieldCheck, Key, FileCheck2, Plus, Upload, Calendar, Clock, AlertTriangle, FileText, Paperclip, Hash, Eye, Trash2 } from 'lucide-react';
 import { getAuthHeaders } from '../utils/auth';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
 
@@ -319,7 +319,12 @@ export const MedicalRecordView: React.FC<MedicalRecordViewProps> = ({
               </span>
             </div>
 
-            {records.length === 0 ? (
+            {isLoading ? (
+              <div className="bg-white rounded-xl border border-[#E5E2D9] p-10 text-center shadow-xs">
+                <div className="w-6 h-6 border-2 border-[#5A5A40] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-xs text-[#8A8A82]">Carregando prontuário...</p>
+              </div>
+            ) : records.length === 0 ? (
               <div className="bg-white rounded-xl border border-[#E5E2D9] p-10 text-center shadow-xs">
                 <FileText className="w-10 h-10 text-[#D1CEC3] mx-auto mb-2" />
                 <h4 className="text-sm font-semibold text-[#3D3D39]">Nenhuma evolução registrada</h4>

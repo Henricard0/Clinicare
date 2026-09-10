@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Patient, User } from '../types';
-import { X, Upload, FileText, CheckCircle2, Eye, Trash2 } from 'lucide-react';
+import { X, Upload, FileText, CheckCircle2, Trash2 } from 'lucide-react';
 import { getAuthHeaders } from '../utils/auth';
 
 interface UploadAttachmentModalProps {

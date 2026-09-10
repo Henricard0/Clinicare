@@ -1,12 +1,11 @@
 import React from 'react';
-import { Calendar, Users, Lock, Smartphone, Shield, FileCode, UserCog } from 'lucide-react';
+import { Calendar, Users, Lock, UserCog } from 'lucide-react';
 import { User } from '../types';
 
 interface BottomNavProps {
   activeTab: string;
   setActiveTab: (tab: any) => void;
   currentUser: User;
-  onOpenArchitecture: () => void;
   onOpenProfile?: () => void;
 }
 
@@ -14,7 +13,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   setActiveTab,
   currentUser,
-  onOpenArchitecture,
   onOpenProfile,
 }) => {
   return (

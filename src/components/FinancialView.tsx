@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Patient, Payment } from '../types';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { FileText, Plus, Search, DollarSign, Download, Clock, CheckCircle2, ChevronRight, X, Printer, Calendar } from 'lucide-react';
+import { FileText, Plus, Search, DollarSign, Download, X, Printer } from 'lucide-react';
 
 interface FinancialViewProps {
   currentUser: User;
