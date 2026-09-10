@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { Shield, Bell, UserCheck, Users, Calendar, Lock, FileCode, CheckCircle2, LogOut, Trash2, UserCog, Sparkles, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Shield, Bell, UserCheck, Users, Calendar, Lock, FileCode, CheckCircle2, LogOut, Trash2, UserCog, Sparkles, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
 
 interface HeaderProps {
@@ -14,8 +14,6 @@ interface HeaderProps {
   onOpenArchitecture: () => void;
   onOpenProfile: () => void;
   onLogout: () => void;
-  onClearData?: () => void;
-  onResetSystem?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,10 +27,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenArchitecture,
   onOpenProfile,
   onLogout,
-  onClearData,
-  onResetSystem,
 }) => {
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const handleReload = () => {
+    window.location.reload();
+  };
   return (
     <header className="bg-white border-b border-[#E5E2D9] sticky top-0 z-30 shadow-xs">
       {/* Main navigation header */}
@@ -94,6 +92,17 @@ export const Header: React.FC<HeaderProps> = ({
               {currentUser.role === 'RECEPTION' && (
                 <span className="text-[10px] bg-[#F9ECEB] text-[#9E3E3E] border border-[#ECD1CF] px-1.5 py-0.2 rounded font-bold">Bloqueado</span>
               )}
+            </button>
+            <button
+              id="nav-financial"
+              onClick={() => setActiveTab('financial')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
+                activeTab === 'financial'
+                  ? 'bg-[#5A5A40] text-white font-medium shadow-xs'
+                  : 'text-[#5A5A40] hover:bg-[#F2F0EA] hover:text-[#3D3D39]'
+              }`}
+            >
+              <UserCheck className="w-4 h-4" /> Financeiro
             </button>
           </nav>
 
@@ -170,19 +179,17 @@ export const Header: React.FC<HeaderProps> = ({
                 <UserCog className="w-4 h-4" />
               </button>
 
-              {/* Reset System Button */}
-              {onResetSystem && (
-                <button
-                  id="btn-reset-system"
-                  type="button"
-                  onClick={() => setIsResetModalOpen(true)}
-                  className="p-2 rounded-lg text-[#8A8A82] hover:text-[#8C4A3B] hover:bg-[#FBEBE8] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
-                  title="Resetar todos os logins e dados (início limpo)"
-                  aria-label="Resetar todos os logins e dados"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              )}
+              {/* Reload System Button */}
+              <button
+                id="btn-reload-system"
+                type="button"
+                onClick={handleReload}
+                className="p-2 rounded-lg text-[#8A8A82] hover:text-[#5A5A40] hover:bg-[#F2F0EA] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                title="Recarregar página"
+                aria-label="Recarregar página"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
 
               {/* Logout Button */}
               <button
@@ -199,59 +206,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Modal de Confirmação de Reset de Logins e Dados */}
-      {isResetModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#2D2D2A]/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#E5E2D9] space-y-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-[#FBEBE8] text-[#8C4A3B] flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-[#3D3D39]">
-                  Resetar Todos os Logins e Dados?
-                </h3>
-                <p className="text-xs text-[#6B6B63] leading-relaxed">
-                  Esta ação revoga todas as sessões ativas de login, restaura as contas de acesso padrão de fábrica e limpa todos os pacientes, consultas, prontuários e anexos cadastrados.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-[#F9F8F5] rounded-xl border border-[#EBE8E1] text-[11px] text-[#8A8A82] space-y-1">
-              <div className="font-semibold text-[#5A5A40] flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> O que será feito:
-              </div>
-              <ul className="list-disc list-inside space-y-0.5 pl-1">
-                <li>Encerramento imediato de todos os acessos/logins logados</li>
-                <li>Zerar pacientes, prontuários e documentos anexados</li>
-                <li>Redefinir logins padrão com senhas seguras (psi123, admin123, rec123)</li>
-              </ul>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsResetModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-[#5A5A40] hover:bg-[#F2F0EA] rounded-xl transition-colors cursor-pointer border border-[#D9D6CC]"
-              >
-                Cancelar
-              </button>
-              <button
-                id="btn-confirm-reset-system"
-                type="button"
-                onClick={() => {
-                  setIsResetModalOpen(false);
-                  onResetSystem?.();
-                }}
-                className="px-4 py-2 text-xs font-semibold text-white bg-[#8C4A3B] hover:bg-[#72382D] rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Sim, Resetar Tudo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

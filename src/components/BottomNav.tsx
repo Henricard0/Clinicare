@@ -73,7 +73,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <span className="text-[10px] mt-0.5 tracking-tight">Prontuário</span>
       </button>
 
-      {/* 4. Meu Perfil */}
+      {/* 4. Financeiro */}
+      <button
+        id="mobile-nav-financial"
+        onClick={() => setActiveTab('financial')}
+        className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-xl transition-all cursor-pointer min-h-[44px] ${
+          activeTab === 'financial'
+            ? 'text-[#5A5A40] font-bold bg-[#F2F0EA]'
+            : 'text-[#8A8A82] hover:text-[#3D3D39]'
+        }`}
+      >
+        <UserCog className={`w-5 h-5 ${activeTab === 'financial' ? 'text-[#5A5A40]' : 'text-[#8A8A82]'}`} />
+        <span className="text-[10px] mt-0.5 tracking-tight">Financeiro</span>
+      </button>
+
+      {/* 5. Meu Perfil */}
       {onOpenProfile && (
         <button
           id="mobile-nav-profile"

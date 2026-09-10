@@ -16,6 +16,7 @@ import { ArchitectureDocsView } from './components/ArchitectureDocsView';
 import { BottomNav } from './components/BottomNav';
 import { LoginView } from './components/LoginView';
 import { ProfileModal } from './components/ProfileModal';
+import { FinancialView } from './components/FinancialView';
 import { ShieldCheck, Calendar, Users, Lock, Smartphone, Shield, FileCode, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default function App() {
@@ -260,49 +261,6 @@ export default function App() {
     }
   };
 
-  const handleResetSystem = async () => {
-    try {
-      await fetch('/api/system/reset-all', {
-        method: 'POST',
-        headers: getHeaders(),
-      });
-    } catch (err) {
-      console.error('Erro ao resetar sistema:', err);
-    } finally {
-      localStorage.removeItem('clinicacare_session_token');
-      localStorage.removeItem('clinicacare_user');
-      localStorage.removeItem('clinicacare_selected_patient_id');
-      localStorage.removeItem('clinicacare_active_tab');
-      setSessionToken(null);
-      setCurrentUser(null);
-      setPatients([]);
-      setAppointments([]);
-      setReminders([]);
-      setSelectedPatientForRecord(null);
-      window.location.hash = '';
-      await loadInitialData();
-    }
-  };
-
-  const handleClearData = async () => {
-    if (!confirm('Deseja realmente limpar todos os dados de exemplo para iniciar seus cadastros limpos?')) return;
-    try {
-      const res = await fetch('/api/system/clear-data', {
-        method: 'POST',
-        headers: getHeaders(),
-      });
-      if (res.ok) {
-        setPatients([]);
-        setAppointments([]);
-        setReminders([]);
-        setSelectedPatientForRecord(null);
-        await refreshAllData();
-      }
-    } catch (err) {
-      console.error('Erro ao limpar dados:', err);
-    }
-  };
-
   const handleSwitchUser = async (userId: string) => {
     try {
       const res = await fetch('/api/auth/switch-user', {
@@ -449,8 +407,6 @@ export default function App() {
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
         onLogout={handleLogout}
-        onClearData={handleClearData}
-        onResetSystem={handleResetSystem}
       />
 
       {/* Main Container */}
@@ -500,6 +456,13 @@ export default function App() {
             onOpenNewEvolution={() => setIsNewEvolutionOpen(true)}
             onOpenUploadModal={() => setIsUploadAttachmentOpen(true)}
             onOpenNewPatient={() => setIsNewPatientOpen(true)}
+          />
+        )}
+
+        {activeTab === 'financial' && (
+          <FinancialView
+            currentUser={currentUser}
+            patients={patients}
           />
         )}
       </main>

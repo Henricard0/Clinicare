@@ -124,6 +124,20 @@ export interface AuditLog {
   lgpd_critical: boolean;
 }
 
+export interface Payment {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  professional_id: string;
+  professional_name: string;
+  amount: number;
+  payment_method: 'PIX' | 'CARTAO_CREDITO' | 'CARTAO_DEBITO' | 'DINHEIRO' | 'TRANSFERENCIA';
+  date: string; // ISO String
+  description: string;
+  status: 'PAGO' | 'PENDENTE';
+  created_at: string;
+}
+
 export interface SystemNotification {
   id: string;
   recipient_user_id: string;

@@ -121,7 +121,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
     let popup: Window | null = null;
     try {
-      popup = window.open('about:blank', 'google_signin_popup', `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`);
+      popup = window.open('', 'google_signin_popup', `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`);
+      if (popup) {
+        popup.document.write('<div style="font-family: sans-serif; padding: 20px; text-align: center;">Carregando...</div>');
+      }
     } catch {
       popup = null;
     }
@@ -144,144 +147,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         return;
       }
     } catch {
-      // Continua para a tela autenticada de popup do Google
+      // Falha ao conectar com backend para pegar URL
     }
 
-    // Se GOOGLE_CLIENT_ID não estiver configurado no Cloud Console,
-    // renderiza a tela com o design oficial do Google Sign-In diretamente na janela popup!
-    const popupHtml = `
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Fazer login com o Google</title>
-        <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-          body { background: #FFFFFF; color: #202124; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-          .card { width: 100%; max-width: 420px; border: 1px solid #DADCE0; border-radius: 8px; padding: 36px 32px 28px; text-align: center; }
-          .logo { width: 42px; height: 42px; margin: 0 auto 14px; }
-          h1 { font-size: 22px; font-weight: 500; color: #202124; margin-bottom: 6px; }
-          p.sub { font-size: 14px; color: #5F6368; margin-bottom: 24px; }
-          p.sub strong { color: #202124; font-weight: 600; }
-          .acc-list { text-align: left; border-top: 1px solid #E8EAED; }
-          .acc-item { display: flex; align-items: center; padding: 14px 10px; border-bottom: 1px solid #E8EAED; cursor: pointer; border-radius: 4px; transition: background 0.15s; }
-          .acc-item:hover { background: #F8F9FA; }
-          .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 14px; border: 1px solid #E0E0E0; }
-          .acc-info { flex: 1; }
-          .acc-name { font-size: 14px; font-weight: 600; color: #3C4043; }
-          .acc-email { font-size: 12px; color: #5F6368; }
-          .badge { font-size: 11px; background: #E6F4EA; color: #137333; padding: 2px 8px; border-radius: 12px; font-weight: 500; }
-          .action-btn { display: flex; align-items: center; width: 100%; padding: 14px 10px; border: none; background: none; border-bottom: 1px solid #E8EAED; cursor: pointer; text-align: left; font-size: 14px; color: #1A73E8; font-weight: 500; }
-          .action-btn:hover { background: #F8F9FA; }
-          .other-box { display: none; margin-top: 14px; text-align: left; padding: 12px; background: #F8F9FA; border-radius: 6px; }
-          .other-box.open { display: block; }
-          .input-field { width: 100%; padding: 10px 12px; border: 1px solid #DADCE0; border-radius: 4px; font-size: 13px; margin-bottom: 8px; background: #FFF; }
-          .input-field:focus { border-color: #1A73E8; outline: none; }
-          .submit-btn { width: 100%; background: #1A73E8; color: white; border: none; padding: 10px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; }
-          .submit-btn:hover { background: #1557B0; }
-          .footer { margin-top: 20px; font-size: 12px; color: #5F6368; display: flex; justify-content: space-between; width: 100%; max-width: 420px; padding: 0 4px; }
-          .loading { display: none; margin: 20px auto 10px; width: 28px; height: 28px; border: 3px solid #E8EAED; border-top: 3px solid #1A73E8; border-radius: 50%; animation: spin 0.8s linear infinite; }
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <svg class="logo" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3h3.88c2.27-2.09 3.66-5.17 3.66-9.09z"/>
-            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.09C3.26 21.36 7.34 24 12 24z"/>
-            <path fill="#FBBC05" d="M5.28 14.32c-.25-.72-.38-1.49-.38-2.32s.13-1.6.38-2.32V6.59H1.24C.45 8.16 0 9.97 0 12s.45 3.84 1.24 5.41l4.04-3.09z"/>
-            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.24 6.59l4.04 3.09c.95-2.83 3.6-4.93 6.72-4.93z"/>
-          </svg>
-          <h1>Fazer login com o Google</h1>
-          <p class="sub">Escolha uma conta para continuar no <strong>ClínicaCare</strong></p>
-
-          <div id="loading" class="loading"></div>
-
-          <div id="content" class="acc-list">
-            <!-- Henrique Greca -->
-            <div class="acc-item" onclick="selectAccount('grecahenrique@gmail.com', 'Dr. Henrique Greca', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')">
-              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" alt="" class="avatar">
-              <div class="acc-info">
-                <div class="acc-name">Dr. Henrique Greca</div>
-                <div class="acc-email">grecahenrique@gmail.com</div>
-              </div>
-              <span class="badge">Psicólogo</span>
-            </div>
-
-            <!-- Dra Beatriz Santos -->
-            <div class="acc-item" onclick="selectAccount('beatriz.psico@gmail.com', 'Dra. Beatriz Santos', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80')">
-              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="" class="avatar">
-              <div class="acc-info">
-                <div class="acc-name">Dra. Beatriz Santos</div>
-                <div class="acc-email">beatriz.psico@gmail.com</div>
-              </div>
-              <span class="badge">Psicóloga</span>
-            </div>
-
-            <!-- Outra Conta -->
-            <button type="button" class="action-btn" onclick="toggleOther()">
-              + Usar outra conta Google
-            </button>
-
-            <div id="otherBox" class="other-box">
-              <input type="text" id="otherName" class="input-field" placeholder="Seu Nome Completo">
-              <input type="email" id="otherEmail" class="input-field" placeholder="seu.email@gmail.com">
-              <button type="button" class="submit-btn" onclick="submitOther()">Avançar</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="footer">
-          <span>Português (Brasil)</span>
-          <span>Ajuda · Privacidade · Termos</span>
-        </div>
-
-        <script>
-          function selectAccount(email, name, avatar) {
-            document.getElementById('content').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_AUTH_REQUEST',
-                email: email,
-                name: name,
-                avatar: avatar || ''
-              }, '*');
-              setTimeout(() => { window.close(); }, 700);
-            }
-          }
-
-          function toggleOther() {
-            var box = document.getElementById('otherBox');
-            box.classList.toggle('open');
-          }
-
-          function submitOther() {
-            var email = document.getElementById('otherEmail').value.trim();
-            var name = document.getElementById('otherName').value.trim() || 'Usuário Google';
-            if (!email) {
-              alert('Por favor, informe seu e-mail do Google.');
-              return;
-            }
-            selectAccount(email, name);
-          }
-        </script>
-      </body>
-      </html>
-    `;
-
+    // Se GOOGLE_CLIENT_ID não estiver configurado, fechamos o popup inútil 
+    // e mostramos o seletor modal integrado de forma limpa na própria página
     try {
-      popup.document.open();
-      popup.document.write(popupHtml);
-      popup.document.close();
-    } catch (popupErr) {
-      console.warn('Popup write falhou ou foi bloqueado pela política de origem, exibindo seletor na página:', popupErr);
-      try {
-        popup.close();
-      } catch {}
-      setIsGoogleModalOpen(true);
-    }
+      popup.close();
+    } catch {}
+    
+    setIsGoogleModalOpen(true);
     setIsGoogleLoading(false);
   };
 
