@@ -7,20 +7,43 @@ import os from 'os';
 const app = express();
 const PORT = 3000;
 
+// ==========================================
+// DETECÇÃO DE AMBIENTE SERVERLESS (Vercel, AWS Lambda, GCP Functions)
+// ==========================================
+function checkIsServerless(): boolean {
+  if (
+    process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.VERCEL_REGION ||
+    process.env.NOW_REGION ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.LAMBDA_TASK_ROOT ||
+    process.env.IS_SERVERLESS
+  ) {
+    return true;
+  }
+
+  const entry = (process.argv && process.argv[1]) ? process.argv[1].replace(/\\/g, '/') : '';
+  const isStandaloneScript = Boolean(
+    entry && (entry.endsWith('server.ts') || entry.endsWith('server.cjs') || entry.endsWith('server.js'))
+  );
+  return !isStandaloneScript;
+}
+
+const isServerless = checkIsServerless();
+
 // 1. Normalizador de URL para ambiente Serverless (Vercel) e Proxies
 app.use((req, res, next) => {
-  if (process.env.VERCEL) {
-    const rawPath =
-      (req.headers['x-matched-path'] as string) ||
-      (req.headers['x-forwarded-uri'] as string) ||
-      req.originalUrl ||
-      req.url;
+  const rawPath =
+    (req.headers['x-matched-path'] as string) ||
+    (req.headers['x-forwarded-uri'] as string) ||
+    req.originalUrl ||
+    req.url;
 
-    if (rawPath && rawPath.startsWith('/api') && (req.url === '/api' || req.url === '/api/')) {
-      req.url = rawPath;
-    } else if (req.url && !req.url.startsWith('/api')) {
-      req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
-    }
+  if (rawPath && rawPath.startsWith('/api') && (req.url === '/api' || req.url === '/api/' || !req.url.startsWith('/api/'))) {
+    req.url = rawPath;
+  } else if (req.url && !req.url.startsWith('/api')) {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
   }
   next();
 });
@@ -332,7 +355,36 @@ let reminders: ReminderQueueDb[] = [];
 // Garante que cadastros de psicólogos, administradores,
 // pacientes e sessões não sejam perdidos ao reiniciar
 // ==========================================
-const DATA_DIR = process.env.VERCEL ? path.join(os.tmpdir(), 'clinic_data') : path.join(process.cwd(), 'data');
+function resolveStorageDir(): string {
+  if (isServerless) {
+    const tmpDir = path.join(os.tmpdir(), 'clinic_data');
+    try {
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+      return tmpDir;
+    } catch {
+      return os.tmpdir();
+    }
+  }
+
+  try {
+    const localDir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    fs.accessSync(localDir, fs.constants.W_OK);
+    return localDir;
+  } catch {
+    const fallbackDir = path.join(os.tmpdir(), 'clinic_data');
+    try {
+      if (!fs.existsSync(fallbackDir)) fs.mkdirSync(fallbackDir, { recursive: true });
+      return fallbackDir;
+    } catch {
+      return os.tmpdir();
+    }
+  }
+}
+
+const DATA_DIR = resolveStorageDir();
 const DATA_FILE = path.join(DATA_DIR, 'clinic_data.json');
 
 function seedInitialDataIfEmpty(forceDemoData: boolean = false) {
@@ -2455,7 +2507,11 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
 // 7. INICIALIZAÇÃO DO SERVIDOR COM VITE MIDDLEWARE
 // ==========================================
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  if (isServerless) {
+    return;
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
     try {
       const viteModule = 'vite';
       const { createServer: createViteServer } = await import(/* @vite-ignore */ viteModule);
@@ -2467,7 +2523,7 @@ async function startServer() {
     } catch (err) {
       console.warn('[Server] Não foi possível iniciar middleware Vite:', err);
     }
-  } else if (!process.env.VERCEL) {
+  } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -2475,14 +2531,12 @@ async function startServer() {
     });
   }
 
-  if (!process.env.VERCEL) {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`CliniCare SaaS Server running on http://0.0.0.0:${PORT}`);
-    });
-  }
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`CliniCare SaaS Server running on http://0.0.0.0:${PORT}`);
+  });
 }
 
-if (!process.env.VERCEL) {
+if (!checkIsServerless()) {
   startServer();
 }
 
