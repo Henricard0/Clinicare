@@ -1,88 +1,13 @@
 {
-  "users": [
-    {
-      "id": "u1",
-      "name": "Dra. Beatriz Santos",
-      "email": "beatriz@clinicacare.com",
-      "role": "PROFESSIONAL",
-      "council_number": "CRP 06/142981",
-      "specialty": "Terapia Cognitivo-Comportamental (TCC)",
-      "phone": "(11) 99876-5432",
-      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      "password_hash": "c6c6340527fde9757e598b1c21e692dfefc201b14587126e112d3f6a685cf1b1dfccb7d04243f2920d7757ef3e0b99784ab66ea7c1f0e0e63ffadc35d3f00a85",
-      "password_salt": "c2721b3f155d5a845a8339ce391a5433"
-    },
-    {
-      "id": "u2",
-      "name": "Dr. Henrique Greca",
-      "email": "henrique@clinicacare.com",
-      "role": "PROFESSIONAL",
-      "council_number": "CRP 08/29182",
-      "specialty": "Psicologia Clínica & Avaliação Neuropsicológica",
-      "phone": "(41) 99123-4567",
-      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-      "password_hash": "8bbdfc2aec64367a8a78c02b1d6177f53203b835ff73faee25ac5c80864f48cbf1c8aef4cc37bcdbb1d5f05ec57acebd8fff8fe6a38e4020f29860236f8dcd5d",
-      "password_salt": "1ec3acb014bd94c188b443aa76146949"
-    },
-    {
-      "id": "u3",
-      "name": "Dr. Roberto Fonseca",
-      "email": "admin@clinicacare.com",
-      "role": "ADMIN",
-      "council_number": "CRM 198421 / Gestor",
-      "specialty": "Diretoria Clínica & Governança LGPD",
-      "phone": "(11) 98765-4321",
-      "avatar": "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80",
-      "password_hash": "a628d97377ba8f19906cfa566d9cbcf8fe5970e4f6174acf4e16bb3be503ee68e953b4d1b0e8a9b673d929a203722b66d24a8c4a6db7a5e8b9dc9444411a649f",
-      "password_salt": "ebbd54aa4c4350e766533f8f7ca360ab"
-    },
-    {
-      "id": "u4",
-      "name": "Camila Andrade",
-      "email": "recepcao@clinicacare.com",
-      "role": "RECEPTION",
-      "specialty": "Atendimento & Gestão de Agenda",
-      "phone": "(11) 3214-5678",
-      "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-      "password_hash": "41400ef97f3eca9d91a883c163ef7b15b20484472c7b1ea0b54130d5458d263e4c5cbf78bbbc03e4dc02c14ba4f825ffbe8d89c103e1c6e851b5e3a639252601",
-      "password_salt": "5e6e0e591a735fd7cb361c8996c6a5f1"
-    }
-  ],
+  "users": [],
   "patients": [],
   "appointments": [],
   "medicalRecords": [],
   "attachments": [],
   "reminders": [],
   "notifications": [],
-  "auditLogs": [
-    {
-      "id": "aud-1789063582397-885",
-      "user_id": "u2",
-      "user_name": "Dr. Henrique Greca",
-      "user_role": "PROFESSIONAL",
-      "action": "BLOCKED_ACCESS_ATTEMPT",
-      "resource": "AUTH",
-      "resource_id": "u2",
-      "details": "Tentativa de login com senha incorreta para o usuário Dr. Henrique Greca (henrique@clinicacare.com).",
-      "ip_address": "127.0.0.1",
-      "timestamp": "2026-09-10T18:06:22.397Z",
-      "lgpd_critical": true
-    },
-    {
-      "id": "aud-1789063491769-372",
-      "user_id": "u2",
-      "user_name": "Dr. Henrique Greca",
-      "user_role": "PROFESSIONAL",
-      "action": "BLOCKED_ACCESS_ATTEMPT",
-      "resource": "AUTH",
-      "resource_id": "u2",
-      "details": "Tentativa de login com senha incorreta para o usuário Dr. Henrique Greca (henrique@clinicacare.com).",
-      "ip_address": "127.0.0.1",
-      "timestamp": "2026-09-10T18:04:51.769Z",
-      "lgpd_critical": true
-    }
-  ],
-  "activeUserId": "u1",
-  "sessionRevocationTimestamp": 1788982729094,
-  "lastSaved": "2026-09-10T18:53:03.077Z"
+  "auditLogs": [],
+  "activeUserId": null,
+  "sessionRevocationTimestamp": 1789068010356,
+  "lastSaved": "2026-09-10T19:20:10.356Z"
 }

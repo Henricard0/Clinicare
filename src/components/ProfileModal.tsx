@@ -14,7 +14,9 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
 
@@ -24,6 +26,8 @@ interface ProfileModalProps {
   currentUser: User;
   onUpdateSuccess: (updatedUser: User) => void;
   token: string | null;
+  currentTheme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 // Galeria de avatares profissionais pré-selecionados para saúde mental / clínica
@@ -79,8 +83,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   currentUser,
   onUpdateSuccess,
   token,
+  currentTheme = 'light',
+  onToggleTheme,
 }) => {
-  const [activeTab, setActiveTab] = useState<'dados' | 'avatar' | 'seguranca'>('dados');
+  const [activeTab, setActiveTab] = useState<'dados' | 'avatar' | 'seguranca' | 'tema'>('dados');
 
   // Form Fields
   const [name, setName] = useState(currentUser.name);
@@ -101,6 +107,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   // Status
   const [isLoading, setIsLoading] = useState(false);
+  const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -108,11 +115,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Lida com o upload local de foto do computador ou celular
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // Processa arquivo de imagem com compressão e fallback
+  const processAvatarFile = (file: File) => {
+    setErrorMessage(null);
     if (!file.type.startsWith('image/')) {
       setErrorMessage('Selecione um arquivo de imagem válido (JPG, PNG ou WEBP).');
       return;
@@ -120,40 +125,75 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
     const reader = new FileReader();
     reader.onload = (event) => {
+      const result = event.target?.result as string;
       const img = new Image();
       img.onload = () => {
-        // Redimensiona para manter o perfil leve (máx 280x280)
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 280;
-        let width = img.width;
-        let height = img.height;
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 320;
+          let width = img.width;
+          let height = img.height;
 
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height = Math.round((height * MAX_SIZE) / width);
-            width = MAX_SIZE;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
           }
-        } else {
-          if (height > MAX_SIZE) {
-            width = Math.round((width * MAX_SIZE) / height);
-            height = MAX_SIZE;
-          }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          setAvatar(compressedDataUrl);
-          setSuccessMessage('Foto carregada do dispositivo! Clique em "Salvar Alterações" para confirmar.');
-          setTimeout(() => setSuccessMessage(null), 4000);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            setAvatar(compressedDataUrl);
+            setSuccessMessage('Foto carregada do dispositivo! Clique em "Salvar Alterações" para confirmar.');
+            setTimeout(() => setSuccessMessage(null), 4000);
+            return;
+          }
+          setAvatar(result);
+        } catch {
+          setAvatar(result);
         }
       };
-      img.src = event.target?.result as string;
+      img.onerror = () => {
+        setAvatar(result);
+        setSuccessMessage('Foto carregada com sucesso.');
+        setTimeout(() => setSuccessMessage(null), 4000);
+      };
+      img.src = result;
+    };
+    reader.onerror = () => {
+      setErrorMessage('Erro ao ler a foto selecionada. Tente outra imagem.');
     };
     reader.readAsDataURL(file);
+  };
+
+  // Lida com o upload local de foto do computador ou celular
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processAvatarFile(file);
+    }
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
+  const handleAvatarDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingAvatar(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processAvatarFile(file);
+    }
   };
 
   const handleApplyCustomUrl = () => {
@@ -225,17 +265,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         throw new Error(data.error || data.message || 'Falha ao atualizar o perfil.');
       }
 
+      const updatedUser: User = data.user || {
+        ...currentUser,
+        name: name.trim(),
+        avatar: avatar.trim(),
+        phone: phone.trim(),
+        council_number: councilNumber.trim(),
+        specialty: specialty.trim(),
+        bio: bio.trim(),
+      };
+
       // Atualiza contas salvas em localStorage para que a foto e o nome reflitam na tela de login
       try {
         const raw = localStorage.getItem('clinicacare_saved_accounts');
         if (raw) {
           const accounts = JSON.parse(raw);
+          const targetEmail = (updatedUser.email || currentUser.email || '').toLowerCase();
           const updated = accounts.map((acc: any) => {
-            if (acc.email.toLowerCase() === data.user.email.toLowerCase()) {
+            if (acc.email && acc.email.toLowerCase() === targetEmail) {
               return {
                 ...acc,
-                name: data.user.name,
-                avatar: data.user.avatar,
+                name: updatedUser.name,
+                avatar: updatedUser.avatar,
               };
             }
             return acc;
@@ -246,8 +297,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         console.error('Erro ao atualizar contas salvas:', e);
       }
 
-      setSuccessMessage('Perfil personalizado com sucesso!');
-      onUpdateSuccess(data.user);
+      setSuccessMessage('Perfil atualizado com sucesso!');
+      onUpdateSuccess(updatedUser);
 
       // Limpa campos de senha
       setCurrentPassword('');
@@ -267,23 +318,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-[#FAF8F5] border border-[#E5E2D9] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-auto text-[#2D2D2A]"
+        className="bg-[#FAF8F5] dark:bg-[#1E1E1A] border border-[#E5E2D9] dark:border-[#383832] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-auto text-[#2D2D2A] dark:text-[#EFECE6]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header do Modal */}
-        <div className="bg-[#F2F0EA] border-b border-[#E5E2D9] px-5 py-4 flex items-center justify-between">
+        <div className="bg-[#F2F0EA] dark:bg-[#272722] border-b border-[#E5E2D9] dark:border-[#383832] px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#5A5A40] text-white flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-[#5A5A40] dark:bg-[#8D8D68] text-white flex items-center justify-center shadow-xs">
               <UserIcon className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#3D3D39] leading-tight flex items-center gap-2">
+              <h2 className="text-base font-bold text-[#3D3D39] dark:text-[#EFECE6] leading-tight flex items-center gap-2">
                 Personalização de Perfil
-                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-white border border-[#E5E2D9] text-[#5A5A40]">
+                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-white dark:bg-[#303028] border border-[#E5E2D9] dark:border-[#383832] text-[#5A5A40] dark:text-[#D6D6B8]">
                   {currentUser.role === 'ADMIN'
                     ? 'Administrador'
                     : currentUser.role === 'PROFESSIONAL'
@@ -291,7 +342,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     : 'Recepção'}
                 </span>
               </h2>
-              <p className="text-xs text-[#8A8A82] mt-0.5">
+              <p className="text-xs text-[#8A8A82] dark:text-[#A3A196] mt-0.5">
                 Atualize sua foto, dados profissionais e credenciais com criptografia.
               </p>
             </div>
@@ -299,7 +350,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <button
             id="btn-close-profile-modal"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#8A8A82] hover:text-[#3D3D39] hover:bg-[#E5E2D9] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white hover:bg-[#E5E2D9] dark:hover:bg-[#383830] transition-colors cursor-pointer"
             title="Fechar"
             aria-label="Fechar janela"
           >
@@ -308,14 +359,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </div>
 
         {/* Abas de Navegação Interna */}
-        <div className="flex border-b border-[#E5E2D9] bg-white px-5 text-xs font-semibold">
+        <div className="flex border-b border-[#E5E2D9] dark:border-[#383832] bg-white dark:bg-[#1E1E1A] px-5 text-xs font-semibold overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('dados')}
-            className={`py-3 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`py-3 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'dados'
-                ? 'border-[#5A5A40] text-[#5A5A40]'
-                : 'border-transparent text-[#8A8A82] hover:text-[#3D3D39]'
+                ? 'border-[#5A5A40] dark:border-[#B5B590] text-[#5A5A40] dark:text-[#EFECE6]'
+                : 'border-transparent text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white'
             }`}
           >
             <UserIcon className="w-4 h-4" />
@@ -324,10 +375,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('avatar')}
-            className={`py-3 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`py-3 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'avatar'
-                ? 'border-[#5A5A40] text-[#5A5A40]'
-                : 'border-transparent text-[#8A8A82] hover:text-[#3D3D39]'
+                ? 'border-[#5A5A40] dark:border-[#B5B590] text-[#5A5A40] dark:text-[#EFECE6]'
+                : 'border-transparent text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white'
             }`}
           >
             <Camera className="w-4 h-4" />
@@ -335,11 +386,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('tema')}
+            className={`py-3 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'tema'
+                ? 'border-[#5A5A40] dark:border-[#B5B590] text-[#5A5A40] dark:text-[#EFECE6]'
+                : 'border-transparent text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white'
+            }`}
+          >
+            {currentTheme === 'dark' ? <Moon className="w-4 h-4 text-[#B5B590]" /> : <Sun className="w-4 h-4 text-[#C98A2C]" />}
+            Tema & Aparência
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('seguranca')}
-            className={`py-3 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`py-3 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'seguranca'
-                ? 'border-[#5A5A40] text-[#5A5A40]'
-                : 'border-transparent text-[#8A8A82] hover:text-[#3D3D39]'
+                ? 'border-[#5A5A40] dark:border-[#B5B590] text-[#5A5A40] dark:text-[#EFECE6]'
+                : 'border-transparent text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white'
             }`}
           >
             <Key className="w-4 h-4" />
@@ -517,36 +580,57 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {activeTab === 'avatar' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* Preview e Upload */}
-              <div className="p-4 bg-white border border-[#E5E2D9] rounded-xl flex flex-col sm:flex-row items-center gap-5">
-                <div className="relative">
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingAvatar(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingAvatar(false);
+                }}
+                onDrop={handleAvatarDrop}
+                className={`p-4 bg-white dark:bg-[#242420] border-2 rounded-xl flex flex-col sm:flex-row items-center gap-5 transition-all ${
+                  isDraggingAvatar
+                    ? 'border-[#5A5A40] dark:border-[#B5B590] bg-[#F2F0EA] dark:bg-[#303028] scale-[1.01]'
+                    : 'border-[#E5E2D9] dark:border-[#383832]'
+                }`}
+              >
+                <div className="relative cursor-pointer group" onClick={() => fileInputRef.current?.click()} title="Clique para trocar a foto">
                   <img
                     src={avatar}
                     alt={name}
-                    className="w-20 h-20 rounded-full object-cover ring-4 ring-[#E5E2D9] shadow-sm"
+                    className="w-20 h-20 rounded-full object-cover ring-4 ring-[#E5E2D9] dark:ring-[#383832] shadow-sm group-hover:opacity-80 transition-opacity"
                   />
-                  <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#708A63] ring-2 ring-white" />
+                  <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#5A5A40] text-white flex items-center justify-center ring-2 ring-white dark:ring-[#242420]">
+                    <Camera className="w-3 h-3" />
+                  </span>
                 </div>
 
                 <div className="flex-1 text-center sm:text-left space-y-2">
-                  <div className="text-xs font-bold text-[#3D3D39]">Foto do Perfil Atual</div>
-                  <p className="text-[11px] text-[#8A8A82]">
-                    Carregue uma foto do seu computador ou escolha uma das predefinições abaixo.
+                  <div className="text-xs font-bold text-[#3D3D39] dark:text-[#EFECE6]">
+                    {isDraggingAvatar ? 'Solte a imagem aqui' : 'Foto do Perfil Atual'}
+                  </div>
+                  <p className="text-[11px] text-[#8A8A82] dark:text-[#A3A196]">
+                    Arraste e solte uma foto aqui, selecione um arquivo do computador ou escolha uma pré-definição.
                   </p>
 
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-xs px-3 py-2 bg-[#5A5A40] hover:bg-[#484833] text-white font-medium rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer min-h-[38px]"
+                      className="text-xs px-3.5 py-2 bg-[#5A5A40] hover:bg-[#484833] text-white font-medium rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer min-h-[38px]"
                     >
-                      <Upload className="w-3.5 h-3.5" /> Enviar Foto do Computador
+                      <Upload className="w-3.5 h-3.5" /> Enviar Foto do Dispositivo
                     </button>
                   </div>
                 </div>
@@ -554,9 +638,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
               {/* Galeria de Pré-definições */}
               <div>
-                <label className="block text-xs font-semibold text-[#3D3D39] mb-2 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#EFECE6] mb-2 flex items-center justify-between">
                   <span>Escolha um Avatar Clínico Profissional:</span>
-                  <span className="text-[11px] text-[#8A8A82]">1 clique para aplicar</span>
+                  <span className="text-[11px] text-[#8A8A82] dark:text-[#A3A196]">1 clique para aplicar</span>
                 </label>
 
                 <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
@@ -573,8 +657,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         }}
                         className={`relative rounded-xl overflow-hidden p-1 border-2 transition-all cursor-pointer flex flex-col items-center group ${
                           isSelected
-                            ? 'border-[#5A5A40] bg-[#F2F0EA] scale-105 shadow-sm'
-                            : 'border-transparent hover:border-[#E5E2D9] bg-white'
+                            ? 'border-[#5A5A40] dark:border-[#B5B590] bg-[#F2F0EA] dark:bg-[#303028] scale-105 shadow-sm'
+                            : 'border-transparent hover:border-[#E5E2D9] dark:hover:border-[#383832] bg-white dark:bg-[#242420]'
                         }`}
                       >
                         <img
@@ -582,7 +666,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           alt={item.label}
                           className="w-12 h-12 rounded-full object-cover"
                         />
-                        <span className="text-[10px] text-[#3D3D39] font-medium mt-1 truncate w-full text-center">
+                        <span className="text-[10px] text-[#3D3D39] dark:text-[#EFECE6] font-medium mt-1 truncate w-full text-center">
                           {item.label}
                         </span>
                         {isSelected && (
@@ -597,8 +681,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
 
               {/* URL Personalizada Opcional */}
-              <div className="pt-2 border-t border-[#E5E2D9]">
-                <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
+              <div className="pt-2 border-t border-[#E5E2D9] dark:border-[#383832]">
+                <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#EFECE6] mb-1">
                   Ou informe o Link direto de uma foto (URL externa):
                 </label>
                 <div className="flex gap-2">
@@ -607,21 +691,119 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     value={customAvatarUrl}
                     onChange={(e) => setCustomAvatarUrl(e.target.value)}
                     placeholder="https://exemplo.com/sua-foto.jpg"
-                    className="flex-1 text-xs bg-white border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] focus:border-[#5A5A40] focus:outline-hidden min-h-[38px]"
+                    className="flex-1 text-sm bg-white dark:bg-[#242420] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2 text-[#2D2D2A] dark:text-[#EFECE6] focus:border-[#5A5A40] focus:outline-hidden"
                   />
                   <button
                     type="button"
                     onClick={handleApplyCustomUrl}
-                    className="px-3 py-2 bg-white border border-[#E5E2D9] hover:border-[#5A5A40] text-xs font-semibold text-[#3D3D39] rounded-lg transition-colors cursor-pointer"
+                    disabled={!customAvatarUrl.trim()}
+                    className="px-3.5 py-2 text-xs bg-[#F2F0EA] dark:bg-[#303028] hover:bg-[#E5E2D9] dark:hover:bg-[#3A3A32] text-[#3D3D39] dark:text-[#EFECE6] font-semibold rounded-lg border border-[#E5E2D9] dark:border-[#383832] transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    Aplicar Link
+                    Aplicar
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ABA 3: SEGURANÇA & SENHA */}
+          {/* ABA 3: TEMA & APARÊNCIA */}
+          {activeTab === 'tema' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="p-4 bg-white dark:bg-[#242420] border border-[#E5E2D9] dark:border-[#383832] rounded-xl space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-[#3D3D39] dark:text-[#EFECE6]">Preferência de Tema Visual</h3>
+                  <p className="text-xs text-[#8A8A82] dark:text-[#A3A196] mt-0.5">
+                    Escolha a aparência da interface do consultório conforme sua preferência de iluminação e conforto visual.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Modo Claro */}
+                  <div
+                    onClick={() => {
+                      if (currentTheme !== 'light' && onToggleTheme) onToggleTheme();
+                    }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 ${
+                      currentTheme === 'light'
+                        ? 'border-[#5A5A40] bg-[#FAF8F5] shadow-sm'
+                        : 'border-[#E5E2D9] dark:border-[#383832] bg-white dark:bg-[#1E1E1A] hover:border-[#8A8A82]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#3D3D39] dark:text-[#EFECE6]">
+                        <Sun className="w-4 h-4 text-[#C98A2C]" />
+                        <span>Modo Claro</span>
+                      </div>
+                      {currentTheme === 'light' && (
+                        <div className="w-4 h-4 rounded-full bg-[#5A5A40] text-white flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="h-14 rounded-lg bg-[#FAF8F5] border border-[#E5E2D9] p-2 flex flex-col justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#5A5A40]"></div>
+                        <div className="w-12 h-1.5 bg-[#D9D6CC] rounded-full"></div>
+                      </div>
+                      <div className="w-full h-2 bg-white rounded-xs border border-[#E5E2D9]"></div>
+                    </div>
+                    <p className="text-[11px] text-[#8A8A82]">
+                      Paleta suave com tons de linho, off-white e oliva clássico para uso diurno.
+                    </p>
+                  </div>
+
+                  {/* Modo Escuro */}
+                  <div
+                    onClick={() => {
+                      if (currentTheme !== 'dark' && onToggleTheme) onToggleTheme();
+                    }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 ${
+                      currentTheme === 'dark'
+                        ? 'border-[#B5B590] bg-[#272722] shadow-sm'
+                        : 'border-[#E5E2D9] dark:border-[#383832] bg-white dark:bg-[#1E1E1A] hover:border-[#8A8A82]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#3D3D39] dark:text-[#EFECE6]">
+                        <Moon className="w-4 h-4 text-[#B5B590]" />
+                        <span>Modo Escuro</span>
+                      </div>
+                      {currentTheme === 'dark' && (
+                        <div className="w-4 h-4 rounded-full bg-[#B5B590] text-[#1E1E1A] flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="h-14 rounded-lg bg-[#181815] border border-[#383832] p-2 flex flex-col justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#B5B590]"></div>
+                        <div className="w-12 h-1.5 bg-[#4A4A40] rounded-full"></div>
+                      </div>
+                      <div className="w-full h-2 bg-[#242420] rounded-xs border border-[#383832]"></div>
+                    </div>
+                    <p className="text-[11px] text-[#8A8A82] dark:text-[#A3A196]">
+                      Alto contraste com fundo escuro aveludado, ideal para sessões noturnas e descanso visual.
+                    </p>
+                  </div>
+                </div>
+
+                {onToggleTheme && (
+                  <div className="pt-2 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={onToggleTheme}
+                      className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#F2F0EA] dark:bg-[#303028] text-[#3D3D39] dark:text-[#EFECE6] border border-[#E5E2D9] dark:border-[#383832] hover:bg-[#E5E2D9] dark:hover:bg-[#3A3A32] transition-colors flex items-center gap-2 cursor-pointer"
+                    >
+                      {currentTheme === 'dark' ? <Sun className="w-3.5 h-3.5 text-[#C98A2C]" /> : <Moon className="w-3.5 h-3.5 text-[#5A5A40]" />}
+                      Alternar para Modo {currentTheme === 'dark' ? 'Claro' : 'Escuro'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ABA 4: SEGURANÇA & SENHA */}
           {activeTab === 'seguranca' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="p-3.5 bg-white border border-[#E5E2D9] rounded-xl flex items-start gap-3">

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-natural-bg: #FDFCF9;
   --color-natural-surface: #FFFFFF;
@@ -21,4 +23,86 @@ body {
   background-color: #FDFCF9;
   color: #2D2D2A;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark body {
+  background-color: #121210;
+  color: #EFECE6;
+}
+
+/* Base dark overrides for common palette classes so every component is seamlessly covered */
+.dark .bg-white {
+  background-color: #1E1E1A;
+}
+
+.dark .bg-\[\#FDFCF9\] {
+  background-color: #121210;
+}
+
+.dark .bg-\[\#F7F5F0\] {
+  background-color: #181815;
+}
+
+.dark .bg-\[\#FAF8F5\] {
+  background-color: #242420;
+}
+
+.dark .bg-\[\#FAF7F2\] {
+  background-color: #242420;
+}
+
+.dark .bg-\[\#F2F0EA\] {
+  background-color: #272722;
+}
+
+.dark .border-\[\#E5E2D9\] {
+  border-color: #383832;
+}
+
+.dark .border-\[\#D1CEC3\] {
+  border-color: #44443C;
+}
+
+.dark .text-\[\#3D3D39\] {
+  color: #EFECE6;
+}
+
+.dark .text-\[\#2D2D2A\] {
+  color: #EFECE6;
+}
+
+.dark .text-\[\#8A8A82\] {
+  color: #A3A196;
+}
+
+.dark .text-\[\#5A5A40\] {
+  color: #D6D6B8;
+}
+
+.dark .hover\:bg-\[\#F2F0EA\]:hover {
+  background-color: #2E2E28;
+}
+
+.dark .hover\:bg-\[\#FAF8F5\]:hover {
+  background-color: #282823;
+}
+
+.dark select,
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="tel"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="number"],
+.dark textarea {
+  background-color: #272722;
+  color: #EFECE6;
+  border-color: #383832;
+}
+
+.dark select option {
+  background-color: #22221D;
+  color: #EFECE6;
 }

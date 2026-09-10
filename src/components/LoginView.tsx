@@ -1,10 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { User, UserRole } from '../types';
-import { Lock, Shield, Eye, EyeOff, CheckCircle2, AlertCircle, UserPlus, LogIn, Trash2, BookmarkCheck } from 'lucide-react';
+import { Lock, Shield, Eye, EyeOff, CheckCircle2, AlertCircle, UserPlus, LogIn, Trash2, BookmarkCheck, Sun, Moon } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
 
 interface LoginViewProps {
   onLoginSuccess: (user: User, token: string) => void;
+  currentTheme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
+  hasRegisteredUsers?: boolean;
 }
 
 interface SavedAccount {
@@ -15,8 +18,16 @@ interface SavedAccount {
   savedAt: string;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+export const LoginView: React.FC<LoginViewProps> = ({
+  onLoginSuccess,
+  currentTheme = 'light',
+  onToggleTheme,
+  hasRegisteredUsers,
+}) => {
+  // Se não houver usuários cadastrados, abre diretamente na tela de criação de primeiro acesso
+  const [mode, setMode] = useState<'login' | 'register'>(() => {
+    return hasRegisteredUsers === false ? 'register' : 'login';
+  });
 
   // Saved accounts & Remember Me state
   const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>(() => {
@@ -24,32 +35,21 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       const raw = localStorage.getItem('clinicacare_saved_accounts');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          // Filtra contas demonstrativas prévias
+          const valid = parsed.filter(
+            (a: any) =>
+              a.email &&
+              !a.email.includes('@clinicacare.com')
+          );
+          if (valid.length !== parsed.length) {
+            localStorage.setItem('clinicacare_saved_accounts', JSON.stringify(valid));
+          }
+          return valid;
+        }
       }
     } catch {}
-    return [
-      {
-        email: 'henrique@clinicacare.com',
-        name: 'Dr. Henrique Greca',
-        role: 'PROFESSIONAL',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-        savedAt: new Date().toISOString(),
-      },
-      {
-        email: 'beatriz@clinicacare.com',
-        name: 'Dra. Beatriz Santos',
-        role: 'PROFESSIONAL',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        savedAt: new Date().toISOString(),
-      },
-      {
-        email: 'admin@clinicacare.com',
-        name: 'Dr. Roberto Fonseca',
-        role: 'ADMIN',
-        avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
-        savedAt: new Date().toISOString(),
-      },
-    ];
+    return [];
   });
   const [rememberMe, setRememberMe] = useState<boolean>(() => {
     return localStorage.getItem('clinicacare_remember_me') !== 'false';
@@ -57,9 +57,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
   // Login form state
   const [email, setEmail] = useState(() => {
-    return localStorage.getItem('clinicacare_remembered_email') || 'henrique@clinicacare.com';
+    const remembered = localStorage.getItem('clinicacare_remembered_email');
+    if (remembered && !remembered.includes('@clinicacare.com')) {
+      return remembered;
+    }
+    localStorage.removeItem('clinicacare_remembered_email');
+    return '';
   });
-  const [password, setPassword] = useState('psi123');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -226,31 +231,55 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#181815] flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200 relative">
+      {/* Floating Theme Toggle */}
+      {onToggleTheme && (
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className="p-2.5 rounded-xl bg-white dark:bg-[#242420] border border-[#E5E2D9] dark:border-[#383832] text-[#5A5A40] dark:text-[#D6D6B8] hover:bg-[#F2F0EA] dark:hover:bg-[#2C2C26] transition-all shadow-xs cursor-pointer flex items-center gap-2 text-xs font-semibold"
+            title={currentTheme === 'dark' ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro'}
+          >
+            {currentTheme === 'dark' ? (
+              <>
+                <Sun className="w-4 h-4 text-[#F59E0B]" />
+                <span className="hidden sm:inline">Modo Claro</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-[#5A5A40]" />
+                <span className="hidden sm:inline">Modo Escuro</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Icon & Heading com Símbolo da Psicologia */}
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md ring-4 ring-[#E5E2D9] p-1 overflow-hidden transition-transform hover:scale-105">
-            <PsychologySymbol variant="tree" size={58} className="w-full h-full" color="#2D2D2A" />
+          <div className="w-16 h-16 bg-white dark:bg-[#242420] rounded-2xl flex items-center justify-center shadow-md ring-4 ring-[#E5E2D9] dark:ring-[#383832] p-1 overflow-hidden transition-transform hover:scale-105">
+            <PsychologySymbol variant="tree" size={58} className="w-full h-full" color={currentTheme === 'dark' ? '#EFECE6' : '#2D2D2A'} />
           </div>
         </div>
 
-        <h1 className="mt-4 text-center text-2xl sm:text-3xl font-serif italic font-bold text-[#3D3D39] tracking-tight">
+        <h1 className="mt-4 text-center text-2xl sm:text-3xl font-serif italic font-bold text-[#3D3D39] dark:text-[#EFECE6] tracking-tight">
           ClínicaCare
         </h1>
-        <div className="mt-1 flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium text-[#5A5A40]">
-          <PsychologySymbol variant="icon" size={15} className="w-3.5 h-3.5 text-[#5A5A40]" />
+        <div className="mt-1 flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium text-[#5A5A40] dark:text-[#B5B590]">
+          <PsychologySymbol variant="icon" size={15} className="w-3.5 h-3.5 text-[#5A5A40] dark:text-[#B5B590]" />
           <span>Psicologia Clínica & Saúde Mental</span>
         </div>
-        <p className="mt-0.5 text-center text-xs text-[#8A8A82]">
+        <p className="mt-0.5 text-center text-xs text-[#8A8A82] dark:text-[#A3A196]">
           Gestão Clínica, Agenda & Prontuário Eletrônico LGPD
         </p>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-6 px-4 sm:px-8 shadow-xl rounded-2xl border border-[#E5E2D9]">
+        <div className="bg-white dark:bg-[#1E1E1A] py-6 px-4 sm:px-8 shadow-xl rounded-2xl border border-[#E5E2D9] dark:border-[#383832]">
           {/* Mode Switch Tabs */}
-          <div className="grid grid-cols-2 gap-1 p-1 bg-[#F2F0EA] rounded-xl mb-6 text-xs font-semibold">
+          <div className="grid grid-cols-2 gap-1 p-1 bg-[#F2F0EA] dark:bg-[#272722] rounded-xl mb-6 text-xs font-semibold">
             <button
               type="button"
               id="tab-mode-login"
@@ -260,8 +289,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               }}
               className={`py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 mode === 'login'
-                  ? 'bg-white text-[#3D3D39] shadow-xs'
-                  : 'text-[#8A8A82] hover:text-[#3D3D39]'
+                  ? 'bg-white dark:bg-[#303028] text-[#3D3D39] dark:text-[#EFECE6] shadow-xs'
+                  : 'text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white'
               }`}
             >
               <LogIn className="w-3.5 h-3.5" /> Entrar no Sistema
@@ -275,8 +304,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               }}
               className={`py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 mode === 'register'
-                  ? 'bg-white text-[#3D3D39] shadow-xs'
-                  : 'text-[#8A8A82] hover:text-[#3D3D39]'
+                  ? 'bg-white dark:bg-[#303028] text-[#3D3D39] dark:text-[#EFECE6] shadow-xs'
+                  : 'text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white'
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" /> Criar Novo Acesso
@@ -285,8 +314,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
           {/* Error Alert Box */}
           {errorMessage && (
-            <div className="mb-4 p-3 bg-[#FAF7F2] border border-[#EADFCB] rounded-xl text-xs text-[#8C4A3B] flex items-start gap-2 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 text-[#8C4A3B] shrink-0 mt-0.5" />
+            <div className="mb-4 p-3 bg-[#FAF7F2] dark:bg-[#2C1D1D] border border-[#EADFCB] dark:border-[#4A2626] rounded-xl text-xs text-[#8C4A3B] dark:text-[#F39C9C] flex items-start gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-[#8C4A3B] dark:text-[#F39C9C] shrink-0 mt-0.5" />
               <div className="flex-1 font-medium">{errorMessage}</div>
             </div>
           )}
@@ -295,13 +324,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             <div>
               {/* Contas Salvas para Acesso Rápido */}
               {savedAccounts.length > 0 && (
-                <div className="mb-5 pb-4 border-b border-[#E5E2D9]">
+                <div className="mb-5 pb-4 border-b border-[#E5E2D9] dark:border-[#383832]">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-[#3D3D39] flex items-center gap-1.5">
-                      <BookmarkCheck className="w-3.5 h-3.5 text-[#5A5A40]" />
+                    <span className="text-xs font-semibold text-[#3D3D39] dark:text-[#EFECE6] flex items-center gap-1.5">
+                      <BookmarkCheck className="w-3.5 h-3.5 text-[#5A5A40] dark:text-[#B5B590]" />
                       Contas salvas para acesso rápido:
                     </span>
-                    <span className="text-[11px] text-[#8A8A82]">Clique para preencher</span>
+                    <span className="text-[11px] text-[#8A8A82] dark:text-[#A3A196]">Clique para preencher</span>
                   </div>
                   <div className="space-y-2">
                     {savedAccounts.map((acc) => {
@@ -312,23 +341,23 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                           onClick={() => handleSelectSavedAccount(acc.email)}
                           className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
                             isSelected
-                              ? 'bg-[#F2F0EA] border-[#5A5A40] ring-1 ring-[#5A5A40]'
-                              : 'bg-[#FAF8F5] hover:bg-[#F2F0EA] border-[#E5E2D9]'
+                              ? 'bg-[#F2F0EA] dark:bg-[#2C2C24] border-[#5A5A40] dark:border-[#B5B590] ring-1 ring-[#5A5A40] dark:ring-[#B5B590]'
+                              : 'bg-[#FAF8F5] dark:bg-[#242420] hover:bg-[#F2F0EA] dark:hover:bg-[#2C2C26] border-[#E5E2D9] dark:border-[#383832]'
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <img
                               src={acc.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
                               alt={acc.name}
-                              className="w-8 h-8 rounded-full object-cover ring-1 ring-[#E5E2D9] shrink-0"
+                              className="w-8 h-8 rounded-full object-cover ring-1 ring-[#E5E2D9] dark:ring-[#383832] shrink-0"
                             />
                             <div className="min-w-0 text-left">
-                              <div className="text-xs font-bold text-[#3D3D39] truncate">{acc.name}</div>
-                              <div className="text-[11px] text-[#8A8A82] truncate">{acc.email}</div>
+                              <div className="text-xs font-bold text-[#3D3D39] dark:text-[#EFECE6] truncate">{acc.name}</div>
+                              <div className="text-[11px] text-[#8A8A82] dark:text-[#A3A196] truncate">{acc.email}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-white border border-[#E5E2D9] text-[#5A5A40]">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-white dark:bg-[#303028] border border-[#E5E2D9] dark:border-[#383832] text-[#5A5A40] dark:text-[#D6D6B8]">
                               {acc.role === 'ADMIN' ? 'Administrador' : acc.role === 'PROFESSIONAL' ? 'Psicólogo(a)' : 'Recepção'}
                             </span>
                             <button
@@ -337,7 +366,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                                 e.stopPropagation();
                                 handleRemoveSavedAccount(acc.email);
                               }}
-                              className="p-1 rounded-md text-[#8A8A82] hover:text-[#8C4A3B] hover:bg-white transition-colors"
+                              className="p-1 rounded-md text-[#8A8A82] dark:text-[#A3A196] hover:text-[#8C4A3B] dark:hover:text-[#F39C9C] hover:bg-white dark:hover:bg-[#303028] transition-colors"
                               title="Remover este login salvo do dispositivo"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -353,7 +382,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               {/* Login Form */}
               <form onSubmit={handleLoginSubmit} name="loginForm" autoComplete="on" className="space-y-4">
                 <div>
-                  <label htmlFor="input-login-email" className="block text-xs font-semibold text-[#3D3D39] mb-1">
+                  <label htmlFor="input-login-email" className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
                     E-mail Profissional
                   </label>
                   <input
@@ -365,16 +394,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ex: seu.nome@clinicapsi.com.br"
                     required
-                    className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] placeholder:text-[#8A8A82] focus:border-[#5A5A40] focus:outline-hidden min-h-[42px]"
+                    className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] placeholder:text-[#8A8A82] dark:placeholder:text-[#6E6E66] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden min-h-[42px]"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label htmlFor="input-login-password" className="block text-xs font-semibold text-[#3D3D39]">
+                    <label htmlFor="input-login-password" className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8]">
                       Senha de Acesso
                     </label>
-                    <span className="text-[11px] text-[#8A8A82]">Hash scrypt com salt</span>
+                    <span className="text-[11px] text-[#8A8A82] dark:text-[#A3A196]">Hash scrypt com salt</span>
                   </div>
                   <div className="relative">
                     <input
@@ -387,12 +416,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 pr-10 text-[#2D2D2A] focus:border-[#5A5A40] focus:outline-hidden min-h-[42px]"
+                      className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 pr-10 text-[#2D2D2A] dark:text-[#EFECE6] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden min-h-[42px]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A8A82] hover:text-[#3D3D39] p-1 cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A8A82] dark:text-[#A3A196] hover:text-[#3D3D39] dark:hover:text-white p-1 cursor-pointer"
                       title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -402,16 +431,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
                 {/* Opção de Lembrar Login */}
                 <div className="flex items-center justify-between py-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-[#3D3D39]">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-[#3D3D39] dark:text-[#D6D6B8]">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded border-[#E5E2D9] text-[#5A5A40] focus:ring-[#5A5A40] accent-[#5A5A40]"
+                      className="w-4 h-4 rounded border-[#E5E2D9] dark:border-[#383832] text-[#5A5A40] dark:text-[#B5B590] focus:ring-[#5A5A40] accent-[#5A5A40]"
                     />
                     <span>Lembrar meu login neste dispositivo</span>
                   </label>
-                  <span className="text-[11px] text-[#708A63] font-medium hidden sm:inline">
+                  <span className="text-[11px] text-[#708A63] dark:text-[#88B079] font-medium hidden sm:inline">
                     Salva para acessos posteriores
                   </span>
                 </div>
@@ -420,7 +449,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   id="btn-submit-login"
                   type="submit"
                   disabled={isLoading}
-                  className="w-full mt-2 py-3 px-4 bg-[#5A5A40] hover:bg-[#484833] text-white text-sm font-semibold rounded-xl shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 min-h-[44px]"
+                  className="w-full mt-2 py-3 px-4 bg-[#5A5A40] hover:bg-[#484833] dark:bg-[#727252] dark:hover:bg-[#5A5A40] text-white text-sm font-semibold rounded-xl shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 min-h-[44px]"
                 >
                   {isLoading ? (
                     <span>Verificando credenciais seguras...</span>
@@ -436,8 +465,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             /* Register Form */
             <form onSubmit={handleRegisterSubmit} name="registerForm" autoComplete="on" className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
-                  Nome Completo <span className="text-[#8C4A3B]">*</span>
+                <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
+                  Nome Completo <span className="text-[#8C4A3B] dark:text-[#F39C9C]">*</span>
                 </label>
                 <input
                   type="text"
@@ -447,13 +476,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   onChange={(e) => setRegName(e.target.value)}
                   placeholder="Ex: Dr. Henrique Silva"
                   required
-                  className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] placeholder:text-[#8A8A82] focus:border-[#5A5A40] focus:outline-hidden"
+                  className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] placeholder:text-[#8A8A82] dark:placeholder:text-[#6E6E66] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
-                  E-mail de Trabalho <span className="text-[#8C4A3B]">*</span>
+                <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
+                  E-mail de Trabalho <span className="text-[#8C4A3B] dark:text-[#F39C9C]">*</span>
                 </label>
                 <input
                   type="email"
@@ -463,19 +492,19 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   onChange={(e) => setRegEmail(e.target.value)}
                   placeholder="henrique@clinicapsi.com.br"
                   required
-                  className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] placeholder:text-[#8A8A82] focus:border-[#5A5A40] focus:outline-hidden"
+                  className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] placeholder:text-[#8A8A82] dark:placeholder:text-[#6E6E66] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
-                    Perfil / Função <span className="text-[#8C4A3B]">*</span>
+                  <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
+                    Perfil / Função <span className="text-[#8C4A3B] dark:text-[#F39C9C]">*</span>
                   </label>
                   <select
                     value={regRole}
                     onChange={(e) => setRegRole(e.target.value as UserRole)}
-                    className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] focus:border-[#5A5A40] focus:outline-hidden"
+                    className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                   >
                     <option value="PROFESSIONAL">Psicólogo / Clínico</option>
                     <option value="ADMIN">Administrador Geral</option>
@@ -484,7 +513,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
+                  <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
                     Telefone / Celular
                   </label>
                   <input
@@ -494,7 +523,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
                     placeholder="(11) 98888-7777"
-                    className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] placeholder:text-[#8A8A82] focus:border-[#5A5A40] focus:outline-hidden"
+                    className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] placeholder:text-[#8A8A82] dark:placeholder:text-[#6E6E66] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -502,7 +531,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               {regRole === 'PROFESSIONAL' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
+                    <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
                       Registro (CRP / CRM)
                     </label>
                     <input
@@ -510,11 +539,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                       value={regCouncilNumber}
                       onChange={(e) => setRegCouncilNumber(e.target.value)}
                       placeholder="Ex: CRP 06/184290"
-                      className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] placeholder:text-[#8A8A82] focus:border-[#5A5A40] focus:outline-hidden"
+                      className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] placeholder:text-[#8A8A82] dark:placeholder:text-[#6E6E66] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
+                    <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
                       Especialidade / Abordagem
                     </label>
                     <input
@@ -522,7 +551,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                       value={regSpecialty}
                       onChange={(e) => setRegSpecialty(e.target.value)}
                       placeholder="Ex: TCC, Psicanálise"
-                      className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] placeholder:text-[#8A8A82] focus:border-[#5A5A40] focus:outline-hidden"
+                      className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] placeholder:text-[#8A8A82] dark:placeholder:text-[#6E6E66] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                     />
                   </div>
                 </div>
@@ -530,8 +559,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
-                    Senha de Acesso <span className="text-[#8C4A3B]">*</span>
+                  <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
+                    Senha de Acesso <span className="text-[#8C4A3B] dark:text-[#F39C9C]">*</span>
                   </label>
                   <input
                     type="password"
@@ -541,12 +570,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="Mínimo 6 dígitos"
                     required
-                    className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] focus:border-[#5A5A40] focus:outline-hidden"
+                    className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#3D3D39] mb-1">
-                    Confirmar Senha <span className="text-[#8C4A3B]">*</span>
+                  <label className="block text-xs font-semibold text-[#3D3D39] dark:text-[#D6D6B8] mb-1">
+                    Confirmar Senha <span className="text-[#8C4A3B] dark:text-[#F39C9C]">*</span>
                   </label>
                   <input
                     type="password"
@@ -556,20 +585,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                     onChange={(e) => setRegPasswordConfirm(e.target.value)}
                     placeholder="Repita a senha"
                     required
-                    className="w-full text-sm bg-[#F2F0EA] border border-[#E5E2D9] rounded-lg p-2.5 text-[#2D2D2A] focus:border-[#5A5A40] focus:outline-hidden"
+                    className="w-full text-sm bg-[#F2F0EA] dark:bg-[#272722] border border-[#E5E2D9] dark:border-[#383832] rounded-lg p-2.5 text-[#2D2D2A] dark:text-[#EFECE6] focus:border-[#5A5A40] dark:focus:border-[#B5B590] focus:outline-hidden"
                   />
                 </div>
               </div>
 
-              <div className="p-2.5 bg-[#FAF8F5] border border-[#E5E2D9] rounded-xl text-[11px] text-[#5A5A40] flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#708A63] shrink-0" />
+              <div className="p-2.5 bg-[#FAF8F5] dark:bg-[#242420] border border-[#E5E2D9] dark:border-[#383832] rounded-xl text-[11px] text-[#5A5A40] dark:text-[#B5B590] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#708A63] dark:text-[#88B079] shrink-0" />
                 <span>O login criado será salvo neste navegador para futuros acessos rápidos.</span>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3 px-4 bg-[#5A5A40] hover:bg-[#484833] text-white text-sm font-semibold rounded-xl shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 min-h-[44px]"
+                className="w-full mt-2 py-3 px-4 bg-[#5A5A40] hover:bg-[#484833] dark:bg-[#727252] dark:hover:bg-[#5A5A40] text-white text-sm font-semibold rounded-xl shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 min-h-[44px]"
               >
                 {isLoading ? (
                   <span>Criando conta e gerando chaves...</span>
@@ -584,13 +613,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* LGPD and Security Footer notice */}
-        <div className="mt-4 text-center text-xs text-[#8A8A82] flex items-center justify-center gap-4">
+        <div className="mt-4 text-center text-xs text-[#8A8A82] dark:text-[#A3A196] flex items-center justify-center gap-4">
           <span className="flex items-center gap-1">
-            <Shield className="w-3.5 h-3.5 text-[#5A5A40]" /> Proteção de Dados LGPD
+            <Shield className="w-3.5 h-3.5 text-[#5A5A40] dark:text-[#B5B590]" /> Proteção de Dados LGPD
           </span>
           <span>•</span>
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#708A63]" /> Sigilo Ético CFP
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#708A63] dark:text-[#88B079]" /> Sigilo Ético CFP
           </span>
         </div>
       </div>

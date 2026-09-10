@@ -43,13 +43,10 @@ app.use((req, _res, next) => {
       (req.headers['x-forwarded-url'] as string) ||
       (req.headers['x-matched-path'] as string) ||
       (req.headers['x-forwarded-uri'] as string) ||
-      req.originalUrl ||
-      req.url;
+      req.originalUrl;
 
-    if (rawPath && rawPath.startsWith('/api') && (req.url === '/api' || req.url === '/api/' || !req.url.startsWith('/api/'))) {
+    if (rawPath && rawPath.startsWith('/api')) {
       req.url = rawPath;
-    } else if (req.url && !req.url.startsWith('/api')) {
-      req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
     }
   }
   next();
@@ -75,14 +72,14 @@ app.use((req, res, next) => {
     }
     return next();
   }
-  express.json({ limit: '10mb' })(req, res, next);
+  express.json({ limit: '50mb' })(req, res, next);
 });
 
 app.use((req, res, next) => {
   if (req.body !== undefined && req.body !== null && typeof req.body === 'object') {
     return next();
   }
-  express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+  express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
 });
 
 // ==========================================
@@ -395,6 +392,10 @@ const DATA_DIR = resolveStorageDir();
 const DATA_FILE = path.join(DATA_DIR, 'clinic_data.json');
 
 function seedInitialDataIfEmpty(forceDemoData: boolean = false) {
+  if (!forceDemoData) {
+    return;
+  }
+
   if (users.length === 0) {
     console.log('[Storage] Inicializando contas clínicas padrão (scrypt + AES-256)...');
     const u1Creds = hashPassword('psi123');
@@ -775,7 +776,7 @@ function initStorage() {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf8');
       const data = JSON.parse(raw);
-      if (Array.isArray(data.users) && data.users.length > 0) users = data.users;
+      if (Array.isArray(data.users)) users = data.users;
       if (Array.isArray(data.patients)) {
         patients = data.patients;
         // Garantia de migração para treatment_status
@@ -830,64 +831,11 @@ function saveDatabase() {
 }
 
 function resetAllLoginsAndData() {
-  console.log('[Storage] Executando reset total de logins, sessões e informações...');
+  console.log('[Storage] Executando reset total de logins, acessos, sessões e contas para começar do zero...');
   sessionRevocationTimestamp = Date.now();
 
-  const u1Creds = hashPassword('psi123');
-  const u2Creds = hashPassword('psi123');
-  const u3Creds = hashPassword('admin123');
-  const u4Creds = hashPassword('rec123');
-
-  users = [
-    {
-      id: 'u1',
-      name: 'Dra. Beatriz Santos',
-      email: 'beatriz@clinicacare.com',
-      role: 'PROFESSIONAL',
-      council_number: 'CRP 06/142981',
-      specialty: 'Terapia Cognitivo-Comportamental (TCC)',
-      phone: '(11) 99876-5432',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      password_hash: u1Creds.hash,
-      password_salt: u1Creds.salt,
-    },
-    {
-      id: 'u2',
-      name: 'Dr. Henrique Greca',
-      email: 'henrique@clinicacare.com',
-      role: 'PROFESSIONAL',
-      council_number: 'CRP 08/29182',
-      specialty: 'Psicologia Clínica & Avaliação Neuropsicológica',
-      phone: '(41) 99123-4567',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      password_hash: u2Creds.hash,
-      password_salt: u2Creds.salt,
-    },
-    {
-      id: 'u3',
-      name: 'Dr. Roberto Fonseca',
-      email: 'admin@clinicacare.com',
-      role: 'ADMIN',
-      council_number: 'CRM 198421 / Gestor',
-      specialty: 'Diretoria Clínica & Governança LGPD',
-      phone: '(11) 98765-4321',
-      avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
-      password_hash: u3Creds.hash,
-      password_salt: u3Creds.salt,
-    },
-    {
-      id: 'u4',
-      name: 'Camila Andrade',
-      email: 'recepcao@clinicacare.com',
-      role: 'RECEPTION',
-      specialty: 'Atendimento & Gestão de Agenda',
-      phone: '(11) 3214-5678',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-      password_hash: u4Creds.hash,
-      password_salt: u4Creds.salt,
-    },
-  ];
-  activeUserId = 'u2';
+  users = [];
+  activeUserId = null;
 
   patients = [];
   appointments = [];
@@ -898,7 +846,7 @@ function resetAllLoginsAndData() {
   auditLogs = [];
 
   saveDatabase();
-  console.log('[Storage] Reset total concluído: 0 pacientes, 0 agendamentos, 0 prontuários, 0 anexos, logins e sessões redefinidos.');
+  console.log('[Storage] Reset total concluído: 0 usuários, 0 pacientes, 0 agendamentos, 0 prontuários, 0 anexos. Sistema pronto para novo cadastro do zero.');
 }
 
 // Inicializa dados persistidos
@@ -1060,10 +1008,15 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  let user = users.find((u) => u.email.toLowerCase() === normalizedEmail);
-  if (!user && (normalizedEmail === 'henriquegrecac@gmail.com' || normalizedEmail.includes('greca'))) {
-    user = users.find((u) => u.id === 'u2');
+
+  if (users.length === 0) {
+    return res.status(401).json({
+      error: 'Nenhum usuário cadastrado no sistema. Crie sua conta inicial em "Criar Novo Acesso" para começar do zero.',
+      noUsers: true,
+    });
   }
+
+  const user = users.find((u) => u.email.toLowerCase() === normalizedEmail);
 
   if (!user) {
     logAuditEvent(
@@ -1077,9 +1030,7 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
   }
 
-  const isDirectMatch = verifyPassword(password, user.password_hash, user.password_salt);
-  const isAliasMatch = (normalizedEmail === 'henriquegrecac@gmail.com' || normalizedEmail.includes('greca')) && (password === 'psi123' || password.length >= 4);
-  const isValid = isDirectMatch || isAliasMatch;
+  const isValid = verifyPassword(password, user.password_hash, user.password_salt);
   if (!isValid) {
     logAuditEvent(
       user,
@@ -1115,20 +1066,22 @@ app.post('/api/auth/register', (req, res) => {
     return res.status(400).json({ error: 'Nome completo, e-mail e senha são obrigatórios.' });
   }
 
-  const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const normalizedEmail = email.toLowerCase().trim();
+  const existing = users.find((u) => u.email.toLowerCase() === normalizedEmail);
   if (existing) {
     return res.status(409).json({ error: 'Já existe um usuário cadastrado com este e-mail.' });
   }
 
+  const isFirstUser = users.length === 0;
   const { hash, salt } = hashPassword(password);
   const newUser: UserDb = {
     id: 'u-' + Date.now(),
-    name,
-    email: email.toLowerCase(),
-    role: role || 'PROFESSIONAL',
-    council_number,
-    specialty,
-    phone: phone || '',
+    name: name.trim(),
+    email: normalizedEmail,
+    role: role || (isFirstUser ? 'ADMIN' : 'PROFESSIONAL'),
+    council_number: council_number?.trim() || '',
+    specialty: specialty?.trim() || '',
+    phone: phone?.trim() || '',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     password_hash: hash,
     password_salt: salt,

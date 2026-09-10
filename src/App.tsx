@@ -43,6 +43,45 @@ export default function App() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
 
+  // Tema Global (Claro / Escuro)
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('clinicacare_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('clinicacare_theme', currentTheme);
+      if (currentTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {
+      console.warn('Erro ao salvar tema:', e);
+    }
+  }, [currentTheme]);
+
+  // Listener para sincronização caso o tema mude via storage em outra aba ou componente
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'clinicacare_theme' && (e.newValue === 'light' || e.newValue === 'dark')) {
+        setCurrentTheme(e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const handleToggleTheme = () => {
+    setCurrentTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   const [selectedPatientForRecord, setSelectedPatientForRecord] = useState<Patient | null>(null);
 
   // Sincroniza a aba ativa com o localStorage e com a hash da URL para manter a página ao atualizar
@@ -320,10 +359,10 @@ export default function App() {
 
   if (isAuthChecking) {
     return (
-      <div className="min-h-screen bg-[#FDFCF9] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FDFCF9] dark:bg-[#121210] flex items-center justify-center transition-colors">
         <div className="text-center space-y-3">
-          <div className="w-9 h-9 border-2 border-[#5A5A40] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs text-[#8A8A82] font-medium tracking-wide">Validando sessão criptografada...</p>
+          <div className="w-9 h-9 border-2 border-[#5A5A40] dark:border-[#B5B590] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-xs text-[#8A8A82] dark:text-[#A3A196] font-medium tracking-wide">Validando sessão criptografada...</p>
         </div>
       </div>
     );
@@ -331,13 +370,20 @@ export default function App() {
 
   // Se não estiver autenticado, exibe a tela de login / cadastro criptografado
   if (!currentUser || !sessionToken) {
-    return <LoginView onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <LoginView
+        onLoginSuccess={handleLoginSuccess}
+        currentTheme={currentTheme}
+        onToggleTheme={handleToggleTheme}
+        hasRegisteredUsers={allUsers.length > 0}
+      />
+    );
   }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[#FDFCF9] flex flex-col font-sans text-[#2D2D2A]">
+    <div className="min-h-screen bg-[#FDFCF9] dark:bg-[#121210] flex flex-col font-sans text-[#2D2D2A] dark:text-[#EFECE6] transition-colors">
       {/* Header com Switcher de Papéis (RBAC) & Logout */}
       <Header
         currentUser={currentUser}
@@ -347,6 +393,8 @@ export default function App() {
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
         onLogout={handleLogout}
+        currentTheme={currentTheme}
+        onToggleTheme={handleToggleTheme}
       />
 
       {/* Main Container */}
@@ -510,6 +558,16 @@ export default function App() {
         currentUser={currentUser}
         onUpdateSuccess={handleProfileUpdated}
         token={sessionToken}
+        currentTheme={currentTheme}
+        onToggleTheme={handleToggleTheme}
+      />
+
+      {/* Navegação Inferior Mobile */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab as any}
+        currentUser={currentUser}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
     </div>
   );
