@@ -54,8 +54,35 @@
   "attachments": [],
   "reminders": [],
   "notifications": [],
-  "auditLogs": [],
+  "auditLogs": [
+    {
+      "id": "aud-1789063582397-885",
+      "user_id": "u2",
+      "user_name": "Dr. Henrique Greca",
+      "user_role": "PROFESSIONAL",
+      "action": "BLOCKED_ACCESS_ATTEMPT",
+      "resource": "AUTH",
+      "resource_id": "u2",
+      "details": "Tentativa de login com senha incorreta para o usuário Dr. Henrique Greca (henrique@clinicacare.com).",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-09-10T18:06:22.397Z",
+      "lgpd_critical": true
+    },
+    {
+      "id": "aud-1789063491769-372",
+      "user_id": "u2",
+      "user_name": "Dr. Henrique Greca",
+      "user_role": "PROFESSIONAL",
+      "action": "BLOCKED_ACCESS_ATTEMPT",
+      "resource": "AUTH",
+      "resource_id": "u2",
+      "details": "Tentativa de login com senha incorreta para o usuário Dr. Henrique Greca (henrique@clinicacare.com).",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-09-10T18:04:51.769Z",
+      "lgpd_critical": true
+    }
+  ],
   "activeUserId": "u2",
   "sessionRevocationTimestamp": 1788982729094,
-  "lastSaved": "2026-09-09T19:38:49.263Z"
+  "lastSaved": "2026-09-10T18:06:24.077Z"
 }

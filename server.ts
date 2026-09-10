@@ -2,21 +2,58 @@ import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
+import os from 'os';
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: '10mb' }));
+// 1. Normalizador de URL para ambiente Serverless (Vercel) e Proxies
+app.use((req, res, next) => {
+  if (process.env.VERCEL) {
+    const rawPath =
+      (req.headers['x-matched-path'] as string) ||
+      (req.headers['x-forwarded-uri'] as string) ||
+      req.originalUrl ||
+      req.url;
 
-// Normalizador de URL estritamente para ambiente Vercel Serverless
-if (process.env.VERCEL) {
-  app.use((req, res, next) => {
-    if (req.url && !req.url.startsWith('/api')) {
-      req.url = '/api' + req.url;
+    if (rawPath && rawPath.startsWith('/api') && (req.url === '/api' || req.url === '/api/')) {
+      req.url = rawPath;
+    } else if (req.url && !req.url.startsWith('/api')) {
+      req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
     }
-    next();
-  });
-}
+  }
+  next();
+});
+
+// 2. Parser de Body compatível com Serverless (Vercel)
+// No runtime serverless da Vercel, o body já é lido e populado como objeto ou string.
+// Chamar express.json() diretamente num stream já drenado causa hang (FUNCTION_INVOCATION_FAILED).
+app.use((req, res, next) => {
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'string') {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch {
+        // não é json, segue fluxo
+      }
+    } else if (Buffer.isBuffer(req.body)) {
+      try {
+        req.body = JSON.parse(req.body.toString('utf8'));
+      } catch {
+        // não é json, segue fluxo
+      }
+    }
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (req.body !== undefined && req.body !== null && typeof req.body === 'object') {
+    return next();
+  }
+  express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+});
 
 // ==========================================
 // 1. CHAVE CRIPTOGRÁFICA LGPD (AES-256-GCM)
@@ -295,7 +332,7 @@ let reminders: ReminderQueueDb[] = [];
 // Garante que cadastros de psicólogos, administradores,
 // pacientes e sessões não sejam perdidos ao reiniciar
 // ==========================================
-const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : path.join(process.cwd(), 'data');
+const DATA_DIR = process.env.VERCEL ? path.join(os.tmpdir(), 'clinic_data') : path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'clinic_data.json');
 
 function seedInitialDataIfEmpty(forceDemoData: boolean = false) {
@@ -2403,17 +2440,33 @@ if (user.role !== 'ADMIN') {
   res.json({ auditLogs });
 });
 
+// Tratamento Global de Erros para Express / Serverless
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[Express Uncaught Error]:', err);
+  if (!res.headersSent) {
+    res.status(500).json({
+      error: 'Erro interno no servidor',
+      message: err?.message || 'Ocorreu um erro ao processar a requisição.',
+    });
+  }
+});
+
 // ==========================================
 // 7. INICIALIZAÇÃO DO SERVIDOR COM VITE MIDDLEWARE
 // ==========================================
 async function startServer() {
   if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const viteModule = 'vite';
+      const { createServer: createViteServer } = await import(/* @vite-ignore */ viteModule);
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (err) {
+      console.warn('[Server] Não foi possível iniciar middleware Vite:', err);
+    }
   } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
