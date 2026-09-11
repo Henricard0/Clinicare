@@ -16,7 +16,8 @@ import {
   RefreshCw,
   CheckCircle2,
   Sun,
-  Moon
+  Moon,
+  HelpCircle,
 } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
 
@@ -28,6 +29,7 @@ interface ProfileModalProps {
   token: string | null;
   currentTheme?: 'light' | 'dark';
   onToggleTheme?: () => void;
+  onStartTour?: () => void;
 }
 
 // Galeria de avatares profissionais pré-selecionados para saúde mental / clínica
@@ -85,6 +87,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   token,
   currentTheme = 'light',
   onToggleTheme,
+  onStartTour,
 }) => {
   const [activeTab, setActiveTab] = useState<'dados' | 'avatar' | 'seguranca' | 'tema'>('dados');
 
@@ -797,6 +800,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {currentTheme === 'dark' ? <Sun className="w-3.5 h-3.5 text-[#C98A2C]" /> : <Moon className="w-3.5 h-3.5 text-[#5A5A40]" />}
                       Alternar para Modo {currentTheme === 'dark' ? 'Claro' : 'Escuro'}
                     </button>
+                  </div>
+                )}
+
+                {/* Tutorial Interativo do Sistema */}
+                {onStartTour && (
+                  <div className="mt-4 pt-4 border-t border-[#E5E2D9] dark:border-[#383832]">
+                    <div className="p-4 bg-[#F9F8F5] dark:bg-[#262622] rounded-xl border border-[#EBE8DF] dark:border-[#33332D] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#3D3D39] dark:text-[#EFECE6]">
+                          <HelpCircle className="w-4 h-4 text-[#5A5A40] dark:text-[#D6D6B8]" />
+                          <span>Tutorial Guiado da Plataforma</span>
+                        </div>
+                        <p className="text-[11px] text-[#8A8A82] dark:text-[#A3A196]">
+                          Rever o passo a passo com destaque em tela e explicação detalhada de cada módulo.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        id="btn-profile-restart-tour"
+                        onClick={() => {
+                          onClose();
+                          setTimeout(() => {
+                            onStartTour();
+                          }, 150);
+                        }}
+                        className="px-3.5 py-2 bg-white dark:bg-[#303028] border border-[#E5E2D9] dark:border-[#383832] hover:border-[#5A5A40] text-[#5A5A40] dark:text-[#EFECE6] text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center gap-1.5 shadow-2xs"
+                      >
+                        <HelpCircle className="w-3.5 h-3.5" /> Iniciar Tutorial
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

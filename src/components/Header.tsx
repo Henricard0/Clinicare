@@ -1,6 +1,6 @@
 import React from 'react';
 import { User } from '../types';
-import { Bell, UserCheck, Users, Calendar, Lock, LogOut, UserCog, RefreshCw, Sun, Moon } from 'lucide-react';
+import { Bell, UserCheck, Users, Calendar, Lock, LogOut, UserCog, RefreshCw, Sun, Moon, HelpCircle } from 'lucide-react';
 import { PsychologySymbol } from './PsychologySymbol';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   unreadNotificationsCount: number;
   onOpenNotifications: () => void;
   onOpenProfile: () => void;
+  onOpenTutorial?: () => void;
   onLogout: () => void;
   currentTheme?: 'light' | 'dark';
   onToggleTheme?: () => void;
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   unreadNotificationsCount,
   onOpenNotifications,
   onOpenProfile,
+  onOpenTutorial,
   onLogout,
   currentTheme = 'light',
   onToggleTheme,
@@ -35,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo & Clinical System Info com Símbolo da Psicologia */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div id="header-brand-logo" className="flex items-center gap-2 sm:gap-3 cursor-pointer">
             <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#5A5A40] dark:bg-[#8D8D68] rounded-lg flex items-center justify-center text-white shadow-xs shrink-0 overflow-hidden p-0.5">
               <PsychologySymbol variant="tree" className="w-full h-full" color="#FFFFFF" />
             </div>
@@ -106,6 +108,20 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Tutorial Button */}
+            {onOpenTutorial && (
+              <button
+                id="btn-open-tutorial"
+                type="button"
+                onClick={onOpenTutorial}
+                className="p-2 rounded-lg text-[#5A5A40] dark:text-[#D6D6B8] hover:text-[#3D3D39] dark:hover:text-white hover:bg-[#F2F0EA] dark:hover:bg-[#2C2C26] transition-colors cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center relative group"
+                title="Tutorial do Sistema (Aprenda a usar a plataforma)"
+                aria-label="Abrir Tutorial do Sistema"
+              >
+                <HelpCircle className="w-5 h-5 transition-transform group-hover:scale-110" />
+              </button>
+            )}
+
             {/* Theme Toggle Button */}
             {onToggleTheme && (
               <button

@@ -15,6 +15,7 @@ import { BottomNav } from './components/BottomNav';
 import { LoginView } from './components/LoginView';
 import { ProfileModal } from './components/ProfileModal';
 import { FinancialView } from './components/FinancialView';
+import { AppTour } from './components/AppTour';
 import { Lock, Code } from 'lucide-react';
 
 export default function App() {
@@ -118,6 +119,51 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isArchitectureOpen, setIsArchitectureOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Inicia o tutorial interativo automaticamente apenas no primeiro acesso do usuário
+  useEffect(() => {
+    if (currentUser?.id) {
+      try {
+        const tourKey = `clinicacare_tour_completed_${currentUser.id}`;
+        const hasSeenTour = localStorage.getItem(tourKey);
+        if (!hasSeenTour) {
+          const timer = setTimeout(() => {
+            setIsTourOpen(true);
+          }, 800);
+          return () => clearTimeout(timer);
+        }
+      } catch (e) {
+        console.warn('Erro ao verificar status do tutorial:', e);
+      }
+    }
+  }, [currentUser?.id]);
+
+  const handleCompleteTour = () => {
+    if (currentUser?.id) {
+      try {
+        localStorage.setItem(`clinicacare_tour_completed_${currentUser.id}`, 'true');
+      } catch (e) {
+        console.warn('Erro ao salvar status do tutorial:', e);
+      }
+    }
+    setIsTourOpen(false);
+  };
+
+  const handleCloseTour = () => {
+    if (currentUser?.id) {
+      try {
+        localStorage.setItem(`clinicacare_tour_completed_${currentUser.id}`, 'true');
+      } catch (e) {
+        console.warn('Erro ao salvar status do tutorial:', e);
+      }
+    }
+    setIsTourOpen(false);
+  };
+
+  const handleStartTourManual = () => {
+    setIsTourOpen(true);
+  };
 
   const handleOpenNewAppointment = (date?: string, time?: string, patientId?: string) => {
     setNewAppointmentDefaults({ date, time, patientId });
@@ -392,6 +438,7 @@ export default function App() {
         unreadNotificationsCount={unreadCount}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenTutorial={handleStartTourManual}
         onLogout={handleLogout}
         currentTheme={currentTheme}
         onToggleTheme={handleToggleTheme}
@@ -473,14 +520,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        currentUser={currentUser}
-        onOpenProfile={() => setIsProfileOpen(true)}
-      />
-
       {/* Modais do Sistema */}
       <NewAppointmentModal
         isOpen={isNewAppointmentOpen}
@@ -560,6 +599,7 @@ export default function App() {
         token={sessionToken}
         currentTheme={currentTheme}
         onToggleTheme={handleToggleTheme}
+        onStartTour={handleStartTourManual}
       />
 
       {/* Navegação Inferior Mobile */}
@@ -568,6 +608,16 @@ export default function App() {
         setActiveTab={setActiveTab as any}
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileOpen(true)}
+      />
+
+      {/* Tutorial Interativo com Destaque em Tela (Spotlight) e Explicações Passo a Passo */}
+      <AppTour
+        isOpen={isTourOpen}
+        onClose={handleCloseTour}
+        onComplete={handleCompleteTour}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        currentTheme={currentTheme}
       />
     </div>
   );
