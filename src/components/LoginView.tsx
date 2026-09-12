@@ -102,13 +102,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
   const handleSelectSavedAccount = (accEmail: string) => {
     setEmail(accEmail);
-    if (accEmail.includes('admin')) {
-      setPassword('admin123');
-    } else if (accEmail.includes('rec')) {
-      setPassword('rec123');
-    } else {
-      setPassword('psi123');
-    }
+    setPassword('');
     setTimeout(() => {
       passwordInputRef.current?.focus();
     }, 50);
